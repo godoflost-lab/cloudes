@@ -65,6 +65,7 @@
   <!-- 全域工具列 -->
   <div class="row card" style="justify-content:space-between;margin-top:8px">
     <div class="row">
+      <button class="btn" onclick="goBack()">上一頁</button>
       <button class="btn" onclick="goto('#/')">回到首頁</button>
     </div>
     <div class="row">
@@ -79,6 +80,19 @@
     <div class="card"><h3>2) 編輯問答（10個存檔）</h3><button class="btn" onclick="goto('#/edit')">前往</button></div>
     <div class="card"><h3>3) 顯示即時頁面</h3><button class="btn" onclick="goto('#/display')">前往</button></div>
     <div class="card"><h3>4) 快速試玩</h3><button class="btn" onclick="goto('#/demo')">前往</button></div>
+
+    <!-- 5) 指定題目顯示 -->
+    <div class="card" id="home-picker">
+      <h3>5) 指定題目顯示（勾選題目）</h3>
+      <div class="row" style="margin:6px 0">
+        <input class="input" id="home-room" placeholder="指定/新建房號" style="max-width:200px">
+        <button class="btn primary" onclick="homeMakeAndPresent()">建立房號並演示</button>
+        <button class="btn" onclick="homeMakeAndQR()">只顯示 QR</button>
+        <label class="pill"><input type="checkbox" id="home-show-deleted"> 顯示已刪除</label>
+      </div>
+      <div class="muted" style="margin-bottom:6px">載入最近 20 題（可用上方勾選顯示已刪除）</div>
+      <div id="home-list"></div>
+    </div>
   </div>
 
   <!-- 新增問答 -->
@@ -120,7 +134,7 @@
     <div id="edit-list"></div>
   </div>
 
-  <!-- 顯示頁面（Slido 風格） -->
+  <!-- 顯示頁面 -->
   <div id="view-display" class="hidden">
     <div class="row card" style="justify-content:space-between">
       <div class="row">
@@ -150,7 +164,6 @@
               <span class="pill">房號：<b id="room-badge">—</b></span>
               <button class="btn" id="btn-copy-room">複製房號</button>
               <button class="btn" id="btn-copy-join">複製參與連結</button>
-              <!-- 敏感詞控制 -->
               <details style="margin-left:6px">
                 <summary class="pill" style="cursor:pointer">敏感詞設定</summary>
                 <div style="margin-top:8px">
@@ -196,44 +209,46 @@
 </div>
 
 <script>
-/* ========== 錯誤面板 ========== */
+/* ===== 錯誤面板 ===== */
 window.addEventListener('error',e=>showErr(e.message));
 window.addEventListener('unhandledrejection',e=>showErr(e.reason));
-function showErr(msg){document.getElementById('errmsg').textContent=String(msg||'');document.getElementById('errbar').style.display='block';}
-function copyErr(){navigator.clipboard.writeText(document.getElementById('errmsg').textContent);}
+function showErr(msg){$('#errmsg').textContent=String(msg||'');$('#errbar').style.display='block';}
+function copyErr(){navigator.clipboard.writeText($('#errmsg').textContent);}
 
-/* ========== Firebase ========== */
+/* ===== Firebase ===== */
 firebase.initializeApp({apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",authDomain:"ai-test-ac0b6.firebaseapp.com",projectId:"ai-test-ac0b6"});
 const db=firebase.firestore();
 
-/* ========== 工具 ========== */
+/* ===== 工具 ===== */
 const $=s=>document.querySelector(s);
-const DAY=86400000;
-const ttlDays=30;
-const withTTL=obj=>({...obj,expireAt:new Date(Date.now()+ttlDays*DAY)});
+const DAY=86400000, ttlDays=30;
+const withTTL=o=>({...o,expireAt:new Date(Date.now()+ttlDays*DAY)});
 const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
 function goto(h){location.hash=h}
+function goBack(){ if(history.length>1) history.back(); else goto('#/'); }
 function splitInput(t){return (t||'').split(/\n|,|，/).map(s=>s.trim()).filter(Boolean);}
 function randId(n=6){return Math.random().toString(36).slice(2,2+n).toUpperCase();}
 function hashHue(str){let h=5381;for(let i=0;i<str.length;i++){h=((h<<5)+h)+str.charCodeAt(i);h|=0;}return (h>>>0)%360;}
 const colorOf=w=>`hsl(${hashHue(w)},72%,56%)`;
 const pollColors=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f43f5e'];
 const containsBad=(text,bads)=>bads.some(w=>w && text.toLowerCase().includes(w.toLowerCase()));
+function debounce(fn,wait=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}}
 
-/* ========== 主題切換（顯示頁） ========== */
+/* ===== 主題切換 ===== */
 (function(){
   const saved=localStorage.getItem('theme')||'dark';
   document.body.classList.toggle('light',saved==='light');
   window.addEventListener('load',()=>{const sel=$('#themeSel'); if(sel){sel.value=saved; sel.onchange=()=>{const v=sel.value;document.body.classList.toggle('light',v==='light');localStorage.setItem('theme',v);};}});
 })();
 
-/* ========== 路由 ========== */
+/* ===== 路由 ===== */
 window.addEventListener('hashchange',router);window.addEventListener('load',router);
 function router(){
   ['view-home','view-new','view-edit','view-display','view-demo','view-join'].forEach(id=>$('#'+id).classList.add('hidden'));
+  $('#qrCorner')?.classList.add('hidden'); // 切頁先收起 QR
   const parts=location.hash.replace(/^#\/?/,'').split('/');
   const p=parts[0]||''; const a=parts[1];
-  if(!p){$('#view-home').classList.remove('hidden');return;}
+  if(!p){$('#view-home').classList.remove('hidden'); loadHomePicker(); return;}
   if(p==='new')$('#view-new').classList.remove('hidden');
   if(p==='edit')loadEdit();
   if(p==='display'){ $('#view-display').classList.remove('hidden'); initDisplay(a); }
@@ -241,7 +256,7 @@ function router(){
   if(p==='demo')$('#view-demo').classList.remove('hidden');
 }
 
-/* ========== 新增題目 ========== */
+/* ===== 新增題目 ===== */
 document.querySelectorAll('input[name=qtype]').forEach(r=>{
   r.onchange=()=>$('#new-options').classList.toggle('hidden',r.value!=='poll');
 });
@@ -257,31 +272,74 @@ async function createQuestion(){
     }
     const ref=await db.collection('questions').add(q);
     if(roomId){ await db.collection('rooms').doc(roomId).set(withTTL({roomId,updatedAt:new Date()}),{merge:true}); }
-    $('#new-info').innerHTML=`✅ 建立成功（ID: ${ref.id}）${roomId?`，已歸屬房號 ${roomId}`:''}`;
+    $('#new-info').innerHTML = `
+      ✅ 建立成功（ID: ${ref.id}）${roomId?`，已歸屬房號 ${roomId}`:''}
+      <div class="row" style="margin-top:8px">
+        <button class="btn" onclick="singleQR('${ref.id}')">顯示「單題」QR</button>
+        <button class="btn" onclick="goto('#/display')">前往顯示頁</button>
+      </div>`;
     $('#new-question').value='';$('#new-options').value='';
   }catch(e){showErr('建立題目失敗：'+e);}
 }
 
-/* ========== 編輯問答（最近 10） ========== */
+/* ===== 首頁：指定題目顯示 ===== */
+async function loadHomePicker(){
+  const list = $('#home-list'); if(!list) return;
+  list.innerHTML = '載入中…';
+  try{
+    const showDel=$('#home-show-deleted').checked;
+    $('#home-show-deleted').onchange=loadHomePicker;
+    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(20).get(); // 無 where 避免索引
+    const items=snap.docs.map(d=>({id:d.id,data:d.data()}))
+      .filter(o=> showDel ? (o.data.deleted===true) : (o.data.deleted!==true));
+    if(items.length===0){ list.innerHTML='（目前沒有題目）'; return; }
+    list.innerHTML='';
+    items.forEach(({id,data})=>{
+      const row=document.createElement('div');
+      row.className='row'; row.style.cssText='justify-content:space-between;border:1px solid var(--btn-border);padding:8px 10px;border-radius:10px;margin-bottom:8px;background:var(--card)';
+      row.innerHTML=`
+        <label class="row" style="gap:8px">
+          <input type="checkbox" class="home-pick" data-id="${id}">
+          <b>${data.prompt}</b> <span class="pill">${data.type}${data.deleted?'・已刪除':''}</span>
+        </label>
+        <div class="row">
+          <button class="btn" onclick="singleQR('${id}')">單題 QR</button>
+        </div>`;
+      list.appendChild(row);
+    });
+  }catch(e){showErr('首頁載入清單失敗：'+e); list.innerHTML='';}
+}
+function homeSelectedIds(){
+  return Array.from(document.querySelectorAll('#home-list .home-pick:checked')).map(el=>el.getAttribute('data-id'));
+}
+async function homeMakeAndPresent(){
+  const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
+  const rid=($('#home-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
+  await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
+  await Promise.all(ids.map(id=>db.collection('questions').doc(id).update(withTTL({roomId:rid,updatedAt:new Date()}))));
+  location.hash=`#/display/${rid}`; setTimeout(()=>setQrCorner(rid),400);
+}
+async function homeMakeAndQR(){
+  const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
+  const rid=($('#home-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
+  await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
+  setQrCorner(rid);
+}
+
+/* ===== 編輯問答 ===== */
 async function loadEdit(){
   try{
     $('#view-edit').classList.remove('hidden');
     const room=$('#edit-room').value.trim();
     const list=$('#edit-list'); list.innerHTML='載入中…';
-    let q=db.collection('questions').orderBy('updatedAt','desc').limit(30);
-    const snap=await q.get(); list.innerHTML='';
-    if(snap.empty){list.textContent='（沒有題目）';return;}
+    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(30).get();
     const showDeleted=$('#show-deleted').checked;
-
-    // 客端過濾
-    const items=snap.docs
-      .map(d=>({id:d.id,data:d.data()}))
+    const items=snap.docs.map(d=>({id:d.id,data:d.data()}))
       .filter(o=>!room || (o.data.roomId===room))
       .filter(o=> showDeleted ? (o.data.deleted===true) : (o.data.deleted!==true))
       .slice(0,10);
-
+    list.innerHTML='';
     if(items.length===0){list.textContent='（無符合條件）';return;}
-
     items.forEach(({id,d})=>{
       const div=document.createElement('div');div.className='card';
       div.innerHTML=`
@@ -292,37 +350,28 @@ async function loadEdit(){
               <b>${d.prompt}</b> <span class="pill">${d.type}</span> ${d.deleted?'<span class="pill">已刪除</span>':''}
             </label>
             <div class="muted">房號：${d.roomId||'（未指定）'}　更新：${(d.updatedAt?.toDate?d.updatedAt.toDate():new Date(d.updatedAt)).toLocaleString?.()||''}</div>
-            ${d.type==='poll' && d.options?.length ? `<div class="muted">選項：${d.options.join('、')}</div>` : ''}
+            ${d.type==='poll'&&d.options?.length?`<div class="muted">選項：${d.options.join('、')}</div>`:''}
           </div>
           <div class="row">
             <button class="btn" onclick="duplicateQ('${id}')">複製</button>
-            ${d.deleted
-              ? `<button class="btn" onclick="restoreQ('${id}')">恢復</button>`
-              : `<button class="btn danger" onclick="softDeleteQ('${id}')">刪除</button>`}
+            ${d.deleted?`<button class="btn" onclick="restoreQ('${id}')">恢復</button>`:`<button class="btn danger" onclick="softDeleteQ('${id}')">刪除</button>`}
             <button class="btn" onclick="assignRoom('${id}')">指定房號</button>
             <button class="btn" onclick="singleQR('${id}')">單題 QR</button>
           </div>
         </div>`;
       list.appendChild(div);
     });
-
     $('#pick-all')?.addEventListener('change',e=>{
       document.querySelectorAll('#edit-list .pick').forEach(cb=>cb.checked=e.target.checked);
     });
     $('#show-deleted').onchange=loadEdit;
-
   }catch(e){showErr('載入題目失敗：'+e);}
 }
-function selectedIds(){
-  return Array.from(document.querySelectorAll('#edit-list .pick:checked'))
-    .map(cb=>cb.getAttribute('data-id'));
-}
+function selectedIds(){return Array.from(document.querySelectorAll('#edit-list .pick:checked')).map(cb=>cb.getAttribute('data-id'))}
 async function assignRoom(qid){
   const rid=prompt('輸入房號（空白=移除房號）');
-  try{
-    await db.collection('questions').doc(qid).update(withTTL({roomId:rid||null,updatedAt:new Date()}));
-    loadEdit();
-  }catch(e){showErr('設定房號失敗：'+e);}
+  try{ await db.collection('questions').doc(qid).update(withTTL({roomId:rid||null,updatedAt:new Date()})); loadEdit(); }
+  catch(e){showErr('設定房號失敗：'+e);}
 }
 async function softDeleteQ(id){
   if(!confirm('將此題標記為「已刪除」？'))return;
@@ -335,127 +384,109 @@ async function restoreQ(id){
 }
 async function duplicateQ(id){
   try{
-    const src=await db.collection('questions').doc(id).get(); const d=src.data();
-    if(!d){alert('來源不存在');return;}
+    const src=await db.collection('questions').doc(id).get(); const d=src.data(); if(!d){alert('來源不存在');return;}
     const keep=confirm('複製並保留相同房號？按「確定」保留，取消為不指定房號');
     const copy=withTTL({...d,roomId:keep?d.roomId:null,createdAt:new Date(),updatedAt:new Date(),deleted:false});
-    delete copy.ts; // 清理可能的額外欄位
+    delete copy.ts;
     await db.collection('questions').add(copy);
     loadEdit();
   }catch(e){showErr('複製失敗：'+e);}
 }
-
-/* 多選建立/更新房號並演示 */
 async function createRoomFromSelection(){
   try{
-    const ids=selectedIds();
-    if(ids.length===0){alert('請至少勾選一題');return;}
-    const rid=($('#pick-room').value.trim()) || prompt('輸入房號（空白為自動產生）') || randId();
-    const payload=withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()});
-    await db.collection('rooms').doc(rid).set(payload,{merge:true});
+    const ids=selectedIds(); if(ids.length===0){alert('請至少勾選一題');return;}
+    const rid=($('#pick-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
+    await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
     await Promise.all(ids.map(id=>db.collection('questions').doc(id).update(withTTL({roomId:rid,updatedAt:new Date()}))));
-    location.hash = `#/display/${rid}`; setTimeout(()=>{ setQrCorner(rid); }, 400);
+    location.hash=`#/display/${rid}`; setTimeout(()=>setQrCorner(rid),400);
   }catch(e){showErr('建立/更新房號失敗：'+e);}
 }
-/* 顯示所選 QR（不跳轉） */
 async function showQRForSelection(){
   try{
-    const ids=selectedIds();
-    if(ids.length===0){alert('請先勾選題目');return;}
-    const rid=($('#pick-room').value.trim()) || prompt('輸入房號（空白為自動產生）') || randId();
+    const ids=selectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
+    const rid=($('#pick-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
     await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
     setQrCorner(rid);
   }catch(e){showErr('顯示所選 QR 失敗：'+e);}
 }
-/* 單題 QR：建立只含此題的房號 */
 async function singleQR(qid){
   try{
-    const rid = prompt('輸入房號（空白為自動產生）') || randId();
+    const rid=prompt('輸入房號（空白為自動產生）')||randId();
     await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:[qid],currentQ:qid,updatedAt:new Date()}),{merge:true});
     await db.collection('questions').doc(qid).update(withTTL({roomId:rid,updatedAt:new Date()}));
     setQrCorner(rid);
   }catch(e){showErr('建立單題房號失敗：'+e);}
 }
 
-/* ========== 顯示頁面 ========== */
+/* ===== 顯示頁 ===== */
 let currentRoom=null,currentQId=null,unsubResp=null,roomBadwords=[];
 function setQrCorner(roomId){
-  const box=$('#qrCorner'); const link=`${location.origin}${location.pathname}#/join/${roomId}`;
+  const link=`${location.origin}${location.pathname}#/join/${roomId}`;
   $('#qrImg').src=encodeQR(link); $('#qrLink').textContent=link;
   $('#btn-copy-corner').onclick=async()=>{await navigator.clipboard.writeText(link); const b=$('#btn-copy-corner');b.classList.add('ok');setTimeout(()=>b.classList.remove('ok'),800);}
-  box.classList.remove('hidden');
+  $('#qrCorner').classList.remove('hidden');
   $('#btn-copy-room').onclick=async()=>{await navigator.clipboard.writeText(roomId);};
   $('#btn-copy-join').onclick=async()=>{await navigator.clipboard.writeText(link);};
 }
 async function initDisplay(roomFromHash){
   const input=$('#display-room'); const sidebar=$('#sidebar'); const roomBadge=$('#room-badge');
+  // 即時 QR 預覽
+  const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); else $('#qrCorner')?.classList.add('hidden'); },180);
+  input.addEventListener('input',previewQR);
+
   const enter=async (rid)=>{
     if(!rid){alert('請輸入房號');return;}
     currentRoom=rid; roomBadge.textContent=rid; input.value=rid;
-    sidebar.innerHTML='載入題目…';
-    setQrCorner(rid);
+    sidebar.innerHTML='載入題目…'; setQrCorner(rid);
 
-    // 讀 rooms 取得 playlist 與 badwords
     const rdoc=await db.collection('rooms').doc(rid).get();
     const rdata=rdoc.data()||{};
-    roomBadwords = Array.isArray(rdata.badwords)? rdata.badwords : [];
-    $('#badwords').value = roomBadwords.join('\n');
+    roomBadwords=Array.isArray(rdata.badwords)? rdata.badwords : [];
+    $('#badwords').value=roomBadwords.join('\n');
 
-    // 抓房號下題目
-    const qs = await db.collection('questions').where('roomId','==',rid).get();
-    let items = qs.docs
-      .map(d=>({id:d.id,data:d.data()}))
-      .filter(o=>o.data.deleted!==true);
+    const qs=await db.collection('questions').where('roomId','==',rid).get(); // 無 orderBy，避免索引
+    let items=qs.docs.map(d=>({id:d.id,data:d.data()})).filter(o=>o.data.deleted!==true);
 
-    // 依 playlist 排序，沒有就用更新時間
-    if(Array.isArray(rdata.playlist) && rdata.playlist.length){
+    if(Array.isArray(rdata.playlist)&&rdata.playlist.length){
       const order=new Map(rdata.playlist.map((id,i)=>[id,i]));
-      items.sort((a,b)=> (order.get(a.id)??999) - (order.get(b.id)??999));
+      items.sort((a,b)=>(order.get(a.id)??999)-(order.get(b.id)??999));
     }else{
-      items.sort((a,b)=> (b.data.updatedAt?.toMillis?.()||0) - (a.data.updatedAt?.toMillis?.()||0));
+      items.sort((a,b)=>(b.data.updatedAt?.toMillis?.()||0)-(a.data.updatedAt?.toMillis?.()||0));
     }
 
-    // 畫清單 + 拖曳能力
     sidebar.innerHTML='';
     items.forEach(({id,data})=>{
       const div=document.createElement('div');div.className='q-item';div.dataset.id=id;div.draggable=true;
-      div.textContent=data.prompt;
-      div.onclick=()=>showQ(id,data,true);
-      sidebar.appendChild(div);
+      div.textContent=data.prompt; div.onclick=()=>showQ(id,data,true); sidebar.appendChild(div);
     });
-    enableDND(sidebar, rid);
+    enableDND(sidebar,rid);
 
-    // 若有 currentQ，自動顯示
     if(rdata.currentQ){
       const hit=items.find(it=>it.id===rdata.currentQ);
       if(hit) showQ(hit.id,hit.data,false);
     }
   };
-  $('#btn-room-create').onclick=()=>{ const rid=randId(); input.value=rid; };
+  $('#btn-room-create').onclick=()=>{ const rid=randId(); input.value=rid; previewQR(); };
   $('#btn-room-enter').onclick=()=>enter(input.value.trim());
   if(roomFromHash){ input.value=roomFromHash; enter(roomFromHash); }
 }
-
-/* 拖曳排序 */
-function enableDND(container, rid){
+function enableDND(container,rid){
   let dragEl=null;
   container.querySelectorAll('.q-item').forEach(el=>{
-    el.addEventListener('dragstart',e=>{dragEl=el; el.classList.add('dragging');});
-    el.addEventListener('dragend',e=>{el.classList.remove('dragging'); dragEl=null; savePlaylist(container,rid);});
+    el.addEventListener('dragstart',()=>{dragEl=el;el.classList.add('dragging');});
+    el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragEl=null;savePlaylist(container,rid);});
   });
   container.addEventListener('dragover',e=>{
     e.preventDefault();
     const afterEl=getDragAfterElement(container,e.clientY);
-    if(!dragEl) return;
-    if(afterEl==null){ container.appendChild(dragEl); }
-    else{ container.insertBefore(dragEl,afterEl); }
+    if(!dragEl)return;
+    if(afterEl==null) container.appendChild(dragEl); else container.insertBefore(dragEl,afterEl);
   });
   function getDragAfterElement(c,y){
     const els=[...c.querySelectorAll('.q-item:not(.dragging)')];
     return els.reduce((closest,child)=>{
-      const box=child.getBoundingClientRect();
-      const offset=y-box.top-box.height/2;
-      if(offset<0 && offset>closest.offset){ return {offset,element:child}; }
+      const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2;
+      if(offset<0 && offset>closest.offset) return {offset,element:child};
       else return closest;
     },{offset:Number.NEGATIVE_INFINITY}).element;
   }
@@ -464,7 +495,6 @@ async function savePlaylist(container,rid){
   const ids=[...container.querySelectorAll('.q-item')].map(x=>x.dataset.id);
   await db.collection('rooms').doc(rid).set(withTTL({playlist:ids,updatedAt:new Date()}),{merge:true});
 }
-
 function markActiveInSidebar(qid){
   document.querySelectorAll('.q-item').forEach(x=>x.classList.remove('active'));
   const el=[...document.querySelectorAll('.q-item')].find(x=>x.dataset.id===qid);
@@ -472,12 +502,12 @@ function markActiveInSidebar(qid){
 }
 async function showQ(qid,data,fromClick=false){
   currentQId=qid; markActiveInSidebar(qid);
-  if(fromClick && currentRoom){
+  if(fromClick&&currentRoom){
     await db.collection('rooms').doc(currentRoom).set(withTTL({roomId:currentRoom,currentQ:qid,updatedAt:new Date()}),{merge:true});
   }
   $('#cur-q-label').textContent=data.prompt||'—';
   $('#display-header').innerHTML=`<h3>${data.prompt}</h3><span class="pill">${data.type}</span>`;
-  const area=$('#display-area'); if(unsubResp){unsubResp(); unsubResp=null;} area.innerHTML='';
+  const area=$('#display-area'); if(unsubResp){unsubResp();unsubResp=null;} area.innerHTML='';
   if(data.type==='qa') unsubResp=renderQA(qid,area);
   if(data.type==='cloud') unsubResp=renderCloud(qid,area);
   if(data.type==='poll') unsubResp=renderPoll(qid,data.options||[],area);
@@ -494,16 +524,12 @@ async function saveBadwords(){
 async function hideAllBad(){
   if(!currentQId){alert('請先選擇題目');return;}
   const snap=await db.collection('questions').doc(currentQId).collection('responses').get();
-  const batch=[];
-  snap.forEach(d=>{
-    const v=d.data(); const t=(v.text||'').toString();
-    if(t && containsBad(t,roomBadwords)) batch.push(d.ref.update({hidden:true,flagged:true}));
-  });
-  await Promise.all(batch);
-  alert('已隱藏命中敏感詞的內容');
+  const works=[];
+  snap.forEach(d=>{const v=d.data();const t=(v.text||'').toString(); if(t&&containsBad(t,roomBadwords)) works.push(d.ref.update({hidden:true,flagged:true}));});
+  await Promise.all(works); alert('已隱藏命中敏感詞內容');
 }
 
-/* 顯示頁：三種渲染 */
+/* 三種渲染 */
 function renderQA(qid,area){
   const showHidden=$('#show-hidden');
   return db.collection('questions').doc(qid).collection('responses').orderBy('ts').onSnapshot(s=>{
@@ -511,8 +537,8 @@ function renderQA(qid,area){
     s.forEach(doc=>{
       const d=doc.data();
       const text=(d.text||'').toString();
-      const isBad = containsBad(text,roomBadwords);
-      const hidden = d.hidden===true && !showHidden.checked;
+      const isBad=containsBad(text,roomBadwords);
+      const hidden=d.hidden===true && !showHidden.checked;
       if(hidden) return;
       const card=document.createElement('div'); card.className='qa-card'+(isBad?' muted':'');
       const msg=document.createElement('div'); msg.textContent=text; msg.style.flex='1';
@@ -537,19 +563,19 @@ function renderCloud(qid,area){
 }
 function renderPoll(qid,opts,area){
   return db.collection('questions').doc(qid).collection('responses').onSnapshot(s=>{
-    const counts={}; opts.forEach((o,i)=>counts[o]=0);
+    const counts={}; opts.forEach(o=>counts[o]=0);
     s.forEach(doc=>{ const o=doc.data().option; if(o!=null && counts[o]!=null) counts[o]++; });
     area.innerHTML='';
     const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
     Object.entries(counts).forEach(([opt,c],i)=>{ const bar=document.createElement('div');bar.className='bar';
       const inner=document.createElement('div');inner.className='bar-inner'; inner.style.width=(c/total*100)+'%';
-      inner.style.background=pollColors[i%pollColors.length]; inner.textContent=`${opt}：${c}  (${Math.round(c/total*100)}%)`;
+      inner.style.background=pollColors[i%pollColors.length]; inner.textContent=`${opt}：${c} (${Math.round(c/total*100)}%)`;
       bar.appendChild(inner); area.appendChild(bar); });
   },err=>showErr('訂閱投票失敗：'+err));
 }
 
-/* ========== 參與者 join ========== */
-function inputUI(tag,attrs={},parent){ const el=document.createElement(tag); Object.assign(el,attrs); parent&&parent.appendChild(el); return el; }
+/* ===== 參與者 join ===== */
+function inputUI(tag,attrs={},parent){const el=document.createElement(tag);Object.assign(el,attrs);parent&&parent.appendChild(el);return el;}
 let joinUnsubRoom=null, joinCurrentQ=null, joinBadwords=[];
 async function initJoin(roomId){
   const badge=$('#j-room'); const promptEl=$('#j-prompt'); const area=$('#j-area'); badge.textContent=roomId||'—';
@@ -560,7 +586,7 @@ async function initJoin(roomId){
   }
   if(joinUnsubRoom) joinUnsubRoom();
   joinUnsubRoom = db.collection('rooms').doc(roomId).onSnapshot(async s=>{
-    const d=s.data(); joinBadwords = Array.isArray(d?.badwords)? d.badwords : [];
+    const d=s.data(); joinBadwords=Array.isArray(d?.badwords)? d.badwords : [];
     if(!d||!d.currentQ){ promptEl.textContent='主持人尚未選題'; area.innerHTML=''; return; }
     const qid=d.currentQ; if(joinCurrentQ===qid) return; joinCurrentQ=qid;
     const qDoc=await db.collection('questions').doc(qid).get(); const q=qDoc.data(); if(!q){promptEl.textContent='題目不存在'; area.innerHTML=''; return;}
@@ -569,13 +595,13 @@ async function initJoin(roomId){
 }
 function renderJoinInput(roomId,qid,q,container){
   container.innerHTML='';
-  if(q.type==='qa' || q.type==='cloud'){
+  if(q.type==='qa'||q.type==='cloud'){
     const ta=document.createElement('textarea'); ta.className='input'; ta.rows=3; ta.placeholder='輸入內容';
     const btn=document.createElement('button'); btn.className='btn primary'; btn.textContent='送出';
     btn.onclick=async()=>{ const text=ta.value.trim(); if(!text){alert('請輸入內容');return;}
-      const hit = containsBad(text,joinBadwords);
+      const hit=containsBad(text,joinBadwords);
       await db.collection('questions').doc(qid).collection('responses').add(withTTL({roomId,text,hidden:hit,flagged:hit,ts:firebase.firestore.FieldValue.serverTimestamp()}));
-      ta.value=''; $('#j-status').textContent= hit?'已送出（待審）':'已送出'; setTimeout(()=>$('#j-status').textContent='',1200);
+      ta.value=''; $('#j-status').textContent=hit?'已送出（待審）':'已送出'; setTimeout(()=>$('#j-status').textContent='',1200);
     };
     container.appendChild(ta); container.appendChild(btn);
   }else if(q.type==='poll'){
@@ -591,20 +617,19 @@ function renderJoinInput(roomId,qid,q,container){
   }
 }
 
-/* ========== 匯出 XLSX ========== */
+/* ===== 匯出 XLSX ===== */
 async function exportXLSX(currentOnly){
   try{
     const wb=XLSX.utils.book_new();
     const rid=$('#display-room').value.trim() || $('#edit-room').value.trim();
     if(!rid){alert('請先輸入房號');return;}
-    const qsRef=db.collection('questions').where('roomId','==',rid);
+    const qsRef=db.collection('questions').where('roomId','==',rid); // 無 orderBy
     if(currentOnly){
       if(!currentQId){alert('尚未選擇當前題');return;}
       const doc=await db.collection('questions').doc(currentQId).get();
       await appendQtoWB(wb,currentQId,doc.data());
     }else{
       const qs=await qsRef.get();
-      // 依 rooms.playlist 排序
       const rdoc=await db.collection('rooms').doc(rid).get();
       const order=new Map((rdoc.data()?.playlist||[]).map((id,i)=>[id,i]));
       const docs=[...qs.docs].sort((a,b)=>(order.get(a.id)??999)-(order.get(b.id)??999));
@@ -614,34 +639,27 @@ async function exportXLSX(currentOnly){
   }catch(e){showErr('匯出失敗：'+e);}
 }
 async function appendQtoWB(wb,qid,data){
-  const ws1=XLSX.utils.aoa_to_sheet([["題目ID",qid],["類型",data.type],["房號",data.roomId||""],["題目",data.prompt],["建立/更新", (data.updatedAt?.toDate?data.updatedAt.toDate():new Date(data.updatedAt)).toLocaleString?.()||""],["刪除",data.deleted? "是":"否"]]);
+  const ws1=XLSX.utils.aoa_to_sheet([["題目ID",qid],["類型",data.type],["房號",data.roomId||""],["題目",data.prompt],["建立/更新",(data.updatedAt?.toDate?data.updatedAt.toDate():new Date(data.updatedAt)).toLocaleString?.()||""],["刪除",data.deleted?"是":"否"]]);
   XLSX.utils.book_append_sheet(wb,ws1,"Q_"+qid+"_info");
   const rs=await db.collection('questions').doc(qid).collection('responses').get();
   const arr=[["roomId","text","option","hidden","flagged","time"]];
-  rs.forEach(r=>{const d=r.data(); arr.push([d.roomId||"", d.text||"", d.option||"", d.hidden?1:0, d.flagged?1:0, d.ts? d.ts.toDate().toLocaleString(): ""]);});
+  rs.forEach(r=>{const d=r.data(); arr.push([d.roomId||"",d.text||"",d.option||"",d.hidden?1:0,d.flagged?1:0,d.ts?d.ts.toDate().toLocaleString():""]);});
   const ws2=XLSX.utils.aoa_to_sheet(arr); XLSX.utils.book_append_sheet(wb,ws2,"Q_"+qid+"_responses");
 }
 
-/* ========== 任何頁面都可叫出 QR/Join 連結 ========== */
-function currentRoomGuess(){
-  return ($('#display-room')?.value?.trim()) || ($('#edit-room')?.value?.trim()) || currentRoom || '';
-}
+/* ===== 任何頁面都可叫出 QR / Join 連結 ===== */
+function currentRoomGuess(){return ($('#display-room')?.value?.trim())||($('#edit-room')?.value?.trim())||currentRoom||''}
 async function quickShowQR(){
   let rid=currentRoomGuess();
-  if(!rid){
-    rid = prompt('輸入房號（空白為自動產生）') || randId();
-    await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,updatedAt:new Date()}),{merge:true});
-  }
+  if(!rid){ rid=prompt('輸入房號（空白為自動產生）')||randId(); await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,updatedAt:new Date()}),{merge:true}); }
   setQrCorner(rid);
 }
 async function copyCurrentJoin(){
-  let rid=currentRoomGuess();
-  if(!rid){alert('尚未指定房號');return;}
-  const link=`${location.origin}${location.pathname}#/join/${rid}`;
-  await navigator.clipboard.writeText(link);
+  let rid=currentRoomGuess(); if(!rid){alert('尚未指定房號');return;}
+  const link=`${location.origin}${location.pathname}#/join/${rid}`; await navigator.clipboard.writeText(link);
 }
 
-/* ========== Demo（本地） ========== */
+/* ===== Demo ===== */
 function runDemo(){
   const tokens=splitInput($('#demo-input').value); const counts={}; tokens.forEach(t=>counts[t]=(counts[t]||0)+1);
   const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]); const div=$('#demo-cloud'); div.innerHTML='';
