@@ -20,7 +20,7 @@
     .muted{color:#98a2b3}
     .hidden{display:none}
     .cloud{position:relative;min-height:360px;background:#0a1126;border:1px solid #1f2a44;border-radius:16px;padding:20px;overflow:auto;text-align:center}
-    .cloud span{display:inline-block;margin:6px;line-height:1.1;vertical-align:middle;font-weight:700}
+    .cloud span{display:inline-block;margin:6px;line-height:1.1;vertical-align:middle;font-weight:900}
     .pill{border-radius:999px;padding:6px 12px;background:#0b1533;border:1px solid #26314d}
     .qrcode{background:#0a0f1f;border:1px solid #1f2937;border-radius:16px;padding:10px}
     .minimal{max-width:720px;margin:auto}
@@ -73,6 +73,9 @@
       <div class="pill">房號：<span id="rid-single"></span></div>
       <div class="qrcode"><img id="qr-single"/></div>
       <input class="input" id="link-single" readonly/>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btn-open-display">前往即時文字雲</button>
+      </div>
     </div>
   </template>
 
@@ -131,7 +134,7 @@ const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
 const randId=(n=6)=>Math.random().toString(36).slice(2,2+n).toUpperCase();
 const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
 const splitInput=txt=>txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);
-const randColor=()=>`hsl(${Math.floor(Math.random()*360)},70%,70%)`;
+const randColor=()=>`hsl(${Math.floor(Math.random()*360)},70%,55%)`;
 
 /* 匯出 XLSX */
 async function exportXLSX(roomId,currentOnly){
@@ -178,6 +181,7 @@ function renderHostSingle(){
   };
   $('#btn-single-xlsx').onclick=()=>exportXLSX(ridSingle,true);
   $('#btn-single-xlsx-all').onclick=()=>exportXLSX(ridSingle,false);
+  $('#btn-open-display').onclick=()=>{ if(!ridSingle)return; window.open(location.origin+location.pathname+'#/d/'+ridSingle,'_blank'); };
 }
 
 /* 多題 */
@@ -225,15 +229,14 @@ function renderDisplay(rid){
   $('#d-room').textContent=rid;
   db.collection('rooms').doc(rid).onSnapshot(s=>{const d=s.data();$('#d-question').textContent=d.mode==='single'?d.question:d.questions[d.currentIndex];});
   db.collection('rooms').doc(rid).collection('responses').onSnapshot(snap=>{
-    const counts={};snap.forEach(doc=>{const d=doc.data();if(d.idx!==undefined){if(d.idx!==snap.metadata.fromCache?d.idx:d.idx){}}
-      if(d.idx!==undefined){if(d.idx!==undefined && d.idx!== (d.currentIndex||0)){}}
-      const t=d.text.trim();if(!t)return;
-      if(d.idx!==undefined && d.idx!==(s.data().currentIndex||0)) return; // 僅顯示當前題
-      counts[t]=(counts[t]||0)+1;
+    const counts={};const d=snap.docs.length?snap.docs[0].ref.parent.parent:{};snap.forEach(doc=>{
+      const r=doc.data();if(!r.text)return;
+      if(r.idx!==undefined && d.data && r.idx!==(d.data().currentIndex||0)) return;
+      counts[r.text]=(counts[r.text]||0)+1;
     });
     const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#cloud');c.innerHTML='';
     if(arr.length===0){c.innerHTML='<div class="muted">尚無資料</div>';return;}
-    const max=arr[0][1], min=arr[arr.length-1][1];
+    const max=arr[0][1],min=arr[arr.length-1][1];
     arr.forEach(([w,f])=>{
       const span=document.createElement('span');
       const size=16+((f-min)/(max-min||1))*104; // 最小16 最大120
@@ -252,9 +255,4 @@ function renderDemo(){
     const txt=$('#demo-input').value;const tokens=splitInput(txt);const counts={};
     tokens.forEach(t=>counts[t]=(counts[t]||0)+1);
     const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#demo-cloud');c.innerHTML='';
-    arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*8)+'px';span.style.color=randColor();span.textContent=w;c.append(span);});
-  };
-}
-</script>
-</body>
-</html>
+    arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+
