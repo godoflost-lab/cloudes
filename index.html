@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>即時文字雲｜極簡學生頁 + 新一題（QR不變）</title>
+  <title>即時文字雲｜單題 & 多題模式</title>
   <style>
     :root{ --bg:#0b1020;--card:#12182b;--muted:#98a2b3;--accent:#5eead4;--accent2:#93c5fd;--danger:#ef4444;}
     *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0a0f1f,#0c152e);color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC",sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#0a0f1f,#0c152e);color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",sans-serif}
     a{color:#93c5fd} .container{max-width:1080px;margin:auto;padding:20px}
-    .card{background:linear-gradient(180deg,#12182b 0%,#0e1426 100%);border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:20px}
-    .grid{display:grid;gap:14px} .grid2{grid-template-columns:1fr} @media(min-width:900px){.grid2{grid-template-columns:1.3fr .7fr}}
+    .card{background:#12182b;border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:20px}
+    .grid{display:grid;gap:14px} .grid2{grid-template-columns:1fr} @media(min-width:900px){.grid2{grid-template-columns:1.2fr .8fr}}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{background:#1f2937;border:1px solid #334155;color:#e5e7eb;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
     .btn:hover{filter:brightness(1.08)} .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none}
     .btn.danger{background:#7f1d1d;border:1px solid #ef4444}
-    .input,.select,textarea{width:100%;background:#0b1020;border:1px solid #2b3348;border-radius:10px;color:#e5e7eb;padding:12px}
+    .input,textarea{width:100%;background:#0b1020;border:1px solid #2b3348;border-radius:10px;color:#e5e7eb;padding:12px}
     .muted{color:#98a2b3} .tag{display:inline-flex;align-items:center;gap:6px;background:#091020;border:1px solid #223;padding:6px 10px;border-radius:999px;color:#cbd5e1}
     .hidden{display:none}
     .cloud{position:relative;min-height:360px;background:#0a1126;border:1px solid #1f2a44;border-radius:16px;padding:20px;overflow:auto;text-align:center}
@@ -23,399 +23,134 @@
     .pill{border-radius:999px;padding:6px 12px;background:#0b1533;border:1px solid #26314d}
     .qrcode{background:#0a0f1f;border:1px solid #1f2937;border-radius:16px;padding:10px}
     .toast{position:fixed;inset:auto 20px 20px auto;background:#111827;border:1px solid #374151;border-radius:10px;padding:10px 14px;z-index:1000}
-    .log{white-space:pre-wrap;background:#0c1324;border:1px solid #24304a;border-radius:8px;padding:12px;margin-top:12px;max-height:260px;overflow:auto}
-    /* 極簡學生頁 */
     .minimal{max-width:720px;margin:auto}
   </style>
 
   <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <!-- SheetJS：XLSX 匯出 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
     <div class="row" style="justify-content:space-between;margin-bottom:14px">
-      <div class="row" style="gap:8px">
-        <strong>即時文字雲（單檔）</strong>
-        <span class="muted">｜主控台・極簡學生作答・大螢幕</span>
-      </div>
+      <strong>即時文字雲（單題 / 多題）</strong>
       <div>
-        <a class="btn" href="#/host">主控台</a>
-        <a class="btn" href="#/s">學生作答（極簡）</a>
-        <a class="btn" href="#/d">大螢幕顯示</a>
+        <a class="btn" href="#/host-single">單題</a>
+        <a class="btn" href="#/host-multi">多題</a>
+        <a class="btn" href="#/d">大螢幕</a>
         <a class="btn" href="#/demo">快速試玩</a>
-        <button class="btn" id="btn-diag">自我檢測</button>
       </div>
     </div>
 
-    <div class="grid grid2">
-      <div class="card">
-        <div id="view-host" class="hidden"></div>
-        <div id="view-respond-lite" class="hidden"></div>
-        <div id="view-display" class="hidden"></div>
-        <div id="view-demo" class="hidden"></div>
-        <div id="view-home" class="grid">
-          <h2>選擇模式</h2>
-          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-            <div class="card"><h3>1) 主控台（老師）</h3><p class="muted">建立房號、切換新一題（QR 不變）、匯出 XLSX/CSV。</p><a class="btn primary" href="#/host">開啟主控台</a></div>
-            <div class="card"><h3>2) 學生作答（極簡）</h3><p class="muted">僅房號、題目、輸入、送出。</p><a class="btn" href="#/s">前往作答</a></div>
-            <div class="card"><h3>3) 大螢幕顯示</h3><p class="muted">置中即時文字雲；按 F 全螢幕。</p><a class="btn" href="#/d">前往文字雲</a></div>
-            <div class="card"><h3>4) 快速試玩（離線）</h3><p class="muted">不連 Firebase 也能預覽效果。</p><a class="btn" href="#/demo">啟動試玩</a></div>
-          </div>
-        </div>
+    <div id="view-home" class="grid">
+      <h2>選擇模式</h2>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+        <div class="card"><h3>1) 單題文字雲</h3><p class="muted">輸入一題，QR 不變，可換新題。</p><a class="btn primary" href="#/host-single">前往單題</a></div>
+        <div class="card"><h3>2) 多題文字雲</h3><p class="muted">最多五題，主控台 ← → 切換。</p><a class="btn" href="#/host-multi">前往多題</a></div>
+        <div class="card"><h3>3) 大螢幕顯示</h3><p class="muted">即時文字雲；F 全螢幕。</p><a class="btn" href="#/d">前往展示</a></div>
+        <div class="card"><h3>4) 快速試玩</h3><p class="muted">離線測試文字雲。</p><a class="btn" href="#/demo">啟動試玩</a></div>
       </div>
-
-      <aside class="card">
-        <div class="muted">若遇到問題，請到主控台 → 自我檢測，並把下方錯誤摘要貼我：</div>
-        <pre id="error-summary" class="log" style="max-height:160px"></pre>
-      </aside>
     </div>
+
+    <div id="view-host-single" class="hidden card"></div>
+    <div id="view-host-multi" class="hidden card"></div>
+    <div id="view-display" class="hidden card"></div>
+    <div id="view-demo" class="hidden card"></div>
+    <div id="view-student" class="hidden card"></div>
   </div>
 
   <div class="toast hidden" id="toast"></div>
 
-  <!-- 主控台 -->
-  <template id="tpl-host">
-    <h2>主控台</h2>
-    <div class="grid" style="grid-template-columns:1fr;gap:16px">
-      <div class="grid" style="gap:8px">
-        <label>題目（顯示給學生）</label>
-        <input class="input" id="host-question" placeholder="例如：AI 時代，畢業前最想練好的三項能力？（以逗號分隔多個詞）"/>
-        <div class="row">
-          <label class="tag"><input type="checkbox" id="host-split" checked/> 以逗號 / 斷行拆成多個詞</label>
-          <label class="tag"><input type="checkbox" id="host-moderation"/> 啟用審核（先進待審，通過後公開）</label>
-        </div>
-        <div class="row">
-          <button class="btn primary" id="btn-create">建立房間</button>
-          <button class="btn" id="btn-next" disabled>新一題（QR 不變）</button>
-          <button class="btn danger" id="btn-clear" disabled>清空所有作答</button>
-        </div>
-        <div class="row">
-          <button class="btn" id="btn-export-xlsx" disabled>匯出當前回合 .xlsx</button>
-          <button class="btn" id="btn-export-xlsx-all" disabled>匯出全部回合 .xlsx</button>
-          <button class="btn" id="btn-export" disabled>匯出 CSV（全部）</button>
-        </div>
-      </div>
-
-      <div id="host-room" class="hidden">
-        <h3>教學連結 & QR-code</h3>
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
-          <div>
-            <div class="pill">房號：<strong id="room-id"></strong>　回合：<strong id="round-id">1</strong></div>
-            <p class="muted">學生（極簡）作答連結：</p>
-            <div class="row"><input class="input" id="answer-lite-link" readonly /><button class="btn" data-copy="#answer-lite-link">複製</button></div>
-            <div class="qrcode center"><img id="answer-lite-qr" alt="極簡作答 QR"/></div>
-          </div>
-          <div>
-            <p class="muted">投影用文字雲連結：</p>
-            <div class="row"><input class="input" id="display-link" readonly /><button class="btn" data-copy="#display-link">複製</button></div>
-            <div class="qrcode center"><img id="display-qr" alt="展示 QR"/></div>
-          </div>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <input class="input" id="ban-word" placeholder="加入禁用詞（按 Enter）"/>
-          <div id="ban-list" class="row"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>自我檢測（診斷輸出）</h3>
-        <div class="row" style="gap:8px">
-          <button class="btn" id="btn-run-diag">測試 Firestore</button>
-          <button class="btn" id="btn-copy-summary">複製錯誤摘要</button>
-        </div>
-        <div id="diag-log" class="log"></div>
-      </div>
+  <!-- 單題主控台 -->
+  <template id="tpl-host-single">
+    <h2>單題文字雲</h2>
+    <input class="input" id="q-single" placeholder="輸入題目" />
+    <button class="btn primary" id="btn-single-create">建立房間</button>
+    <button class="btn" id="btn-single-next" disabled>新一題</button>
+    <div id="single-info" class="hidden">
+      <div class="pill">房號：<span id="rid-single"></span></div>
+      <div class="qrcode"><img id="qr-single"/></div>
+      <input class="input" id="link-single" readonly/>
     </div>
   </template>
 
-  <!-- 學生作答（極簡） -->
-  <template id="tpl-respond-lite">
+  <!-- 多題主控台 -->
+  <template id="tpl-host-multi">
+    <h2>多題文字雲</h2>
+    <p class="muted">最多五題，每行一題：</p>
+    <textarea class="input" id="qs-multi" rows="5"></textarea>
+    <button class="btn primary" id="btn-multi-create">建立房間</button>
+    <div id="multi-info" class="hidden">
+      <div class="pill">房號：<span id="rid-multi"></span>　當前：<span id="idx-multi"></span></div>
+      <div class="row"><button class="btn" id="btn-prev">上一題</button><button class="btn" id="btn-next">下一題</button></div>
+      <div class="qrcode"><img id="qr-multi"/></div>
+      <input class="input" id="link-multi" readonly/>
+    </div>
+  </template>
+
+  <!-- 學生頁（共用） -->
+  <template id="tpl-student">
     <div class="grid minimal" style="gap:12px">
-      <h2 style="margin:0">作答</h2>
-      <div class="pill">房號：<span id="s-room"></span>　回合：<span id="s-round">1</span></div>
+      <h2 id="s-mode"></h2>
+      <div class="pill">房號：<span id="s-room"></span></div>
       <div class="pill" id="s-question"></div>
-      <textarea class="input" id="s-text" rows="3" placeholder="輸入關鍵詞，可用逗號 / 斷行分隔多個詞"></textarea>
+      <textarea class="input" id="s-text" rows="3"></textarea>
       <button class="btn primary" id="s-send">送出</button>
-      <div class="muted" id="s-status"></div>
+      <div id="s-status" class="muted"></div>
     </div>
   </template>
 
-  <!-- 大螢幕展示 -->
+  <!-- 大螢幕 -->
   <template id="tpl-display">
-    <div class="grid" style="gap:8px">
-      <div class="row" style="justify-content:space-between;align-items:baseline">
-        <div class="row" style="gap:10px">
-          <h2 style="margin:0">即時文字雲</h2>
-          <div class="pill" id="display-room"></div>
-          <div class="pill">回合：<span id="display-round">1</span></div>
-        </div>
-        <div class="row">
-          <button class="btn" id="btn-full">全螢幕（F）</button>
-          <select class="select" id="size-mode">
-            <option value="auto">自動縮放</option>
-            <option value="xl">粗體特大</option>
-            <option value="lg">大</option>
-            <option value="md">中</option>
-            <option value="sm">小</option>
-          </select>
-        </div>
-      </div>
-      <div class="pill" id="display-question"></div>
-      <div id="cloud" class="cloud"></div>
-    </div>
+    <h2>即時文字雲</h2>
+    <div class="pill" id="d-room"></div>
+    <div class="pill" id="d-question"></div>
+    <div id="cloud" class="cloud"></div>
   </template>
 
-  <!-- 快速試玩（離線） -->
+  <!-- Demo -->
   <template id="tpl-demo">
-    <div class="grid" style="gap:10px">
-      <h2>快速試玩（本機模擬）</h2>
-      <textarea class="input" id="demo-input" rows="4" placeholder="貼上多行文字或使用逗號分隔"></textarea>
-      <div class="row"><button class="btn primary" id="demo-run">產生文字雲</button></div>
-      <div id="demo-cloud" class="cloud"></div>
-    </div>
+    <h2>快速試玩</h2>
+    <textarea class="input" id="demo-input" rows="4"></textarea>
+    <button class="btn primary" id="demo-run">產生</button>
+    <div id="demo-cloud" class="cloud"></div>
   </template>
 
 <script>
-/* ===== Firebase 設定 ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",
-  authDomain: "ai-test-ac0b6.firebaseapp.com",
-  projectId: "ai-test-ac0b6",
-  storageBucket: "ai-test-ac0b6.appspot.com",
-  messagingSenderId: "1053389594847",
-  appId: "1:1053389594847:web:c7fbc7d02482827bdcc96a",
-  measurementId: "G-P2PE26PKZP"
-};
+const firebaseConfig={apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",authDomain:"ai-test-ac0b6.firebaseapp.com",projectId:"ai-test-ac0b6"};
+firebase.initializeApp(firebaseConfig); const db=firebase.firestore();
+const $=(s,r=document)=>r.querySelector(s); const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
+const randId=(n=6)=>Math.random().toString(36).slice(2,2+n).toUpperCase();
+const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
+const splitInput=txt=>txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);
+function router(){const [p,id]=location.hash.slice(2).split('/');['view-home','view-host-single','view-host-multi','view-display','view-demo','view-student'].forEach(v=>show($('#'+v),false));({ 'host-single':renderHostSingle,'host-multi':renderHostMulti,d:renderDisplay,demo:renderDemo,s:renderStudent,'':()=>show($('#view-home'),true) }[p]||(()=>{}))(id);}window.addEventListener('hashchange',router);window.addEventListener('load',router);
 
-/* ===== 小工具 ===== */
-const $=(s,r=document)=>r.querySelector(s);
-const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-const show=(el,on=true)=> el?.classList[on?'remove':'add']('hidden');
-const toast=(msg)=>{const t=$('#toast'); if(!t) return; t.textContent=msg; show(t,true); setTimeout(()=>show(t,false),2000);};
-const randId=(n=6)=> Math.random().toString(36).slice(2,2+n).toUpperCase();
-const pageURL=()=> (location.href.split('#')[0]);
-const encodeQR=(url)=> `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
-const fullwidthToHalfwidth=(s)=> s.replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/　/g,' ');
-const normalize=(s)=> fullwidthToHalfwidth(s).trim().replace(/\s+/g,' ').toLowerCase();
-const splitInput=(text)=> text.split(/\n|,|，|;|；/).map(t=>t.trim()).filter(Boolean);
-const mapRange=(v,inMin,inMax,outMin,outMax)=>{ if(inMax===inMin) return (outMin+outMax)/2; const r=(v-inMin)/(inMax-inMin); return Math.round(outMin + r*(outMax-outMin)); };
+/* 單題 */
+let ridSingle=null;
+function renderHostSingle(){const v=$('#view-host-single');v.innerHTML='';v.append($('#tpl-host-single').content.cloneNode(true));show(v,true);
+$('#btn-single-create').onclick=async()=>{const q=$('#q-single').value.trim();if(!q)return;ridSingle=randId();await db.collection('rooms').doc(ridSingle).set({mode:'single',question:q});$('#rid-single').textContent=ridSingle;$('#qr-single').src=encodeQR(location.origin+location.pathname+'#/s/'+ridSingle);$('#link-single').value=location.origin+location.pathname+'#/s/'+ridSingle;show($('#single-info'),true);$('#btn-single-next').disabled=false;};
+$('#btn-single-next').onclick=async()=>{const newQ=prompt('新題目');if(!newQ)return;await db.collection('rooms').doc(ridSingle).update({question:newQ});};}
 
-/* ===== 診斷簡報 ===== */
-let summaryLines=[];
-const pushSummary=(...args)=>{ const s=args.join(' '); summaryLines.push(s); const el=$('#error-summary'); if(el){ el.textContent = summaryLines.slice(-20).join('\n'); } };
-function logDiag(...args){ const el=$('#diag-log'); if(el){ el.textContent += args.join(' ') + '\n'; el.scrollTop=el.scrollHeight; } }
+/* 多題 */
+let ridMulti=null;
+function renderHostMulti(){const v=$('#view-host-multi');v.innerHTML='';v.append($('#tpl-host-multi').content.cloneNode(true));show(v,true);
+$('#btn-multi-create').onclick=async()=>{const qs=splitInput($('#qs-multi').value).slice(0,5);if(qs.length==0)return;ridMulti=randId();await db.collection('rooms').doc(ridMulti).set({mode:'multi',questions:qs,currentIndex:0});$('#rid-multi').textContent=ridMulti;$('#qr-multi').src=encodeQR(location.origin+location.pathname+'#/s/'+ridMulti);$('#link-multi').value=location.origin+location.pathname+'#/s/'+ridMulti;$('#idx-multi').textContent=1;show($('#multi-info'),true);
+document.onkeydown=e=>{if(e.key==='ArrowRight')nextQ();if(e.key==='ArrowLeft')prevQ();};$('#btn-next').onclick=nextQ;$('#btn-prev').onclick=prevQ;};
+async function nextQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex<d.questions.length-1){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex+1});$('#idx-multi').textContent=d.currentIndex+2;}}
+async function prevQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex>0){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex-1});$('#idx-multi').textContent=d.currentIndex;}}}
 
-/* ===== Firebase 初始化（含降級） ===== */
-let app, db, cfgValid=false;
-function initFirebase(){
-  try{
-    app=firebase.initializeApp(firebaseConfig);
-    db=firebase.firestore();
-    db.settings({ experimentalAutoDetectLongPolling:true, experimentalForceLongPolling:true, experimentalLongPollingOptions:{timeoutSeconds:5}, useFetchStreams:false });
-    cfgValid=true;
-  }catch(e){ pushSummary('Firebase init 失敗', e.message||e); cfgValid=false; }
-}
-initFirebase();
+/* 學生 */
+function renderStudent(rid){const v=$('#view-student');v.innerHTML='';v.append($('#tpl-student').content.cloneNode(true));show(v,true);
+$('#s-room').textContent=rid;let room=null;db.collection('rooms').doc(rid).onSnapshot(s=>{room=s.data();if(room.mode==='single'){$('#s-mode').textContent='單題';$('#s-question').textContent=room.question;}else{$('#s-mode').textContent='多題';$('#s-question').textContent=room.questions[room.currentIndex];}});
+$('#s-send').onclick=async()=>{const raw=$('#s-text').value.trim();if(!raw)return;await db.collection('rooms').doc(rid).collection('responses').add({text:raw,ts:firebase.firestore.FieldValue.serverTimestamp(),idx:room.mode==='single'?0:room.currentIndex});$('#s-text').value='';$('#s-status').textContent='已送出';setTimeout(()=>$('#s-status').textContent='',1500);};}
 
-/* ===== Router ===== */
-const routes={host:renderHost,d:renderDisplay,demo:renderDemo,s:renderRespondLite,'':renderHome};
-document.addEventListener('click', (e) => {
-  const a = e.target.closest('a[href^="#/"]'); if (!a) return; e.preventDefault(); const h = a.getAttribute('href'); if (h && h !== location.hash) location.hash = h;
-});
-window.addEventListener('keydown', e => { if((e.key||'').toLowerCase()==='f' && location.hash.startsWith('#/d')) toggleFull(); });
-window.addEventListener('hashchange', router); window.addEventListener('load', router);
-function router(){ if(!location.hash.startsWith('#/')){ location.hash='#/'; return; } const [name,id]=location.hash.slice(2).split('/'); ['view-home','view-host','view-respond-lite','view-display','view-demo'].forEach(i=>show($('#'+i),false)); (routes[name]||routes[''])(id); }
-function renderHome(){ show($('#view-home'),true); }
+/* 展示 */
+function renderDisplay(rid){const v=$('#view-display');v.innerHTML='';v.append($('#tpl-display').content.cloneNode(true));show(v,true);
+$('#d-room').textContent=rid;db.collection('rooms').doc(rid).onSnapshot(s=>{const d=s.data();$('#d-question').textContent=d.mode==='single'?d.question:d.questions[d.currentIndex];});
+db.collection('rooms').doc(rid).collection('responses').onSnapshot(snap=>{const counts={};snap.forEach(doc=>{const t=doc.data().text.trim();if(!t)return;counts[t]=(counts[t]||0)+1;});const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#cloud');c.innerHTML='';arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});});}
 
-/* ===== 主控台（移除開始/暫停，新增「新一題」） ===== */
-let currentRoomId=null, roomUnsub=null;
-function renderHost(){
-  const root=$('#view-host'); root.innerHTML=''; root.appendChild($('#tpl-host').content.cloneNode(true)); show(root,true);
-  if(!cfgValid){ toast('尚未設定 Firebase'); return; }
-
-  $('#btn-create').onclick = async ()=>{
-    try{
-      const q=$('#host-question').value.trim(); if(!q){ alert('請先輸入題目'); return; }
-      const roomId=randId(6);
-      await db.collection('rooms').doc(roomId).set({
-        question:q, moderation:$('#host-moderation').checked, split:$('#host-split').checked,
-        banned:[], currentRound:1, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      bindRoom(roomId);
-    }catch(e){ alert('建立失敗：'+(e.code||e.message||e)); pushSummary('建立房間失敗', e.code||e); }
-  };
-
-  $('#btn-next').onclick = async ()=>{
-    if(!currentRoomId) return;
-    const newQ=prompt('輸入新題目（同一 QR，不換房號）'); if(!newQ) return;
-    try{ await db.collection('rooms').doc(currentRoomId).update({ question:newQ, currentRound:firebase.firestore.FieldValue.increment(1) }); toast('已切換到新一題'); }
-    catch(e){ pushSummary('切換新一題失敗', e.code||e); }
-  };
-
-  $('#btn-clear').onclick = async ()=>{
-    if(!currentRoomId) return;
-    if(!confirm('確定要清空所有作答？')) return;
-    const col=db.collection('rooms').doc(currentRoomId).collection('responses');
-    const snaps=await col.get(); const batch=db.batch(); snaps.forEach(doc=>batch.delete(doc.ref)); await batch.commit(); toast('已清空');
-  };
-
-  $('#btn-export').onclick = ()=> currentRoomId && exportCSV(currentRoomId);
-  $('#btn-export-xlsx').onclick = ()=> currentRoomId && exportXLSX(currentRoomId,true);
-  $('#btn-export-xlsx-all').onclick = ()=> currentRoomId && exportXLSX(currentRoomId,false);
-
-  $$('#view-host [data-copy]').forEach(btn=> btn.addEventListener('click', ()=>{ const target=$(btn.getAttribute('data-copy')); target.select(); document.execCommand('copy'); toast('已複製'); }));
-
-  $('#btn-run-diag').onclick = runDiagnostics;
-  $('#btn-copy-summary').onclick = ()=>{ navigator.clipboard?.writeText(summaryLines.join('\n')||''); toast('已複製錯誤摘要'); };
-
-  function bindRoom(roomId){
-    currentRoomId=roomId;
-    const base=pageURL();
-    $('#room-id').textContent=roomId;
-    $('#answer-lite-link').value = `${base}#/s/${roomId}`;
-    $('#display-link').value = `${base}#/d/${roomId}`;
-    $('#answer-lite-qr').src = encodeQR($('#answer-lite-link').value);
-    $('#display-qr').src = encodeQR($('#display-link').value);
-    ['#btn-next','#btn-clear','#btn-export','#btn-export-xlsx','#btn-export-xlsx-all'].forEach(sel=>$(sel).disabled=false);
-    show($('#host-room'),true);
-
-    roomUnsub && roomUnsub();
-    roomUnsub = db.collection('rooms').doc(roomId).onSnapshot(s=> $('#round-id').textContent = (s.data()?.currentRound)||1 );
-  }
-
-  // 禁用詞
-  $('#ban-word').addEventListener('keydown', e=>{
-    if(e.key==='Enter' && currentRoomId){
-      const w=e.currentTarget.value.trim(); if(!w) return;
-      db.collection('rooms').doc(currentRoomId).update({banned: firebase.firestore.FieldValue.arrayUnion(normalize(w))});
-      e.currentTarget.value='';
-    }
-  });
-}
-
-/* ===== 匯出 ===== */
-async function exportCSV(roomId){
-  const snap=await db.collection('rooms').doc(roomId).collection('responses').get();
-  const rows=[['roomId','round','text','normalized','approved','ts']];
-  snap.forEach(doc=>{ const d=doc.data(); rows.push([roomId,d.round||1,d.text,d.norm||'',d.approved!==false,d.ts? d.ts.toDate().toISOString():'' ]) });
-  const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`wordcloud_${roomId}_all.csv`; a.click();
-}
-async function exportXLSX(roomId,currentOnly=true){
-  const roomDoc=await db.collection('rooms').doc(roomId).get();
-  const round=(roomDoc.data()?.currentRound)||1;
-  let q=db.collection('rooms').doc(roomId).collection('responses');
-  if(currentOnly) q=q.where('round','==',round);
-  const snap=await q.get();
-  const data=[["房號","回合","原始文字","標準化","是否通過","時間"]];
-  snap.forEach(doc=>{ const d=doc.data(); data.push([roomId,d.round||1,d.text||'',d.norm||'',d.approved!==false,d.ts? d.ts.toDate().toLocaleString():'']); });
-  const ws=XLSX.utils.aoa_to_sheet(data); const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, currentOnly?`Round_${round}`:'All');
-  XLSX.writeFile(wb, `wordcloud_${roomId}_${currentOnly?('round'+round):'all'}.xlsx`);
-}
-
-/* ===== 學生作答（極簡） ===== */
-function renderRespondLite(roomId){
-  const root=$('#view-respond-lite'); root.innerHTML=''; root.appendChild($('#tpl-respond-lite').content.cloneNode(true)); show(root,true);
-  if(!cfgValid){ toast('尚未設定 Firebase'); return; }
-  const roomEl=$('#s-room'), roundEl=$('#s-round'), qEl=$('#s-question'), tEl=$('#s-text'), sEl=$('#s-status');
-  if(!roomId){ sEl.textContent='請在網址輸入 #/s/房號'; return; }
-  roomEl.textContent=roomId;
-
-  let roomData=null;
-  db.collection('rooms').doc(roomId).onSnapshot(s=>{
-    roomData=s.data()||{}; qEl.textContent=roomData.question||''; roundEl.textContent=roomData.currentRound||1;
-  }, err=>{ sEl.textContent='讀取失敗：'+(err.code||err); });
-
-  $('#s-send').onclick = async ()=>{
-    const raw=tEl.value.trim(); if(!raw){ sEl.textContent='請輸入內容'; return; }
-    const tokens=(roomData?.split!==false? splitInput(raw):[raw]).slice(0,10);
-    const col=db.collection('rooms').doc(roomId).collection('responses'); const batch=db.batch();
-    const round=roomData?.currentRound||1; const moderation=roomData?.moderation? true:false;
-    tokens.forEach(t=>{ const n=normalize(t); if(!n) return; batch.set(col.doc(),{ text:t.trim(), norm:n, round, approved: moderation? false:true, ts: firebase.firestore.FieldValue.serverTimestamp() }); });
-    try{ await batch.commit(); tEl.value=''; sEl.textContent = moderation? '已送出（待審）' : '已送出，感謝參與！'; setTimeout(()=> sEl.textContent='', 1600); }
-    catch(e){ sEl.textContent='送出失敗：'+(e.code||e); }
-  };
-}
-
-/* ===== 大螢幕展示（置中） ===== */
-function renderDisplay(roomId){
-  const root=$('#view-display'); root.innerHTML=''; root.appendChild($('#tpl-display').content.cloneNode(true)); show(root,true);
-  if(!cfgValid){ $('#display-question').textContent='尚未設定 Firebase'; return; }
-
-  const roomEl=$('#display-room'); const qEl=$('#display-question'); const cloud=$('#cloud'); const roundEl=$('#display-round');
-  $('#btn-full').onclick=toggleFull; $('#size-mode').onchange=()=> renderCloud(lastCounts);
-  if(!roomId){ roomEl.textContent='未指定房號'; return; }
-  roomEl.textContent=roomId;
-
-  let banned=new Set(), lastCounts=new Map(), currentRound=1, respUnsub=null;
-  db.collection('rooms').doc(roomId).onSnapshot(snap=>{
-    const data=snap.data()||{}; qEl.textContent=data.question||''; banned=new Set((data.banned||[]).map(normalize));
-    currentRound=data.currentRound||1; roundEl.textContent=currentRound;
-    respUnsub && respUnsub();
-    respUnsub = db.collection('rooms').doc(roomId).collection('responses').where('round','==',currentRound)
-      .onSnapshot(snap=>{
-        const counts=new Map();
-        snap.forEach(doc=>{
-          const d=doc.data(); if(d.approved===false) return;
-          const n=normalize(d.norm||d.text||''); if(!n || banned.has(n)) return;
-          counts.set(n,(counts.get(n)||0)+1);
-        });
-        renderCloud(counts);
-      });
-  });
-
-  function renderCloud(counts){
-    lastCounts=counts; cloud.innerHTML='';
-    const entries=Array.from(counts.entries()).sort((a,b)=> b[1]-a[1]).slice(0,200);
-    if(entries.length===0){ cloud.innerHTML='<div class="muted" style="height:260px;display:flex;align-items:center;justify-content:center">尚無資料</div>'; return; }
-    const max=entries[0][1]; const min=entries[entries.length-1][1]; const mode=$('#size-mode').value;
-    entries.forEach(([word,freq])=>{
-      const span=document.createElement('span');
-      let size=mapRange(freq,min,max,16,96);
-      if(mode==='xl') size=Math.max(size,72);
-      if(mode==='lg') size=Math.max(size,48);
-      if(mode==='md') size=Math.max(size,28);
-      if(mode==='sm') size=Math.max(size,18);
-      span.style.fontSize=size+'px'; span.style.fontWeight=700;
-      span.style.background='linear-gradient(135deg, var(--accent), var(--accent2))';
-      span.style.webkitBackgroundClip='text'; span.style.backgroundClip='text'; span.style.color='transparent';
-      span.textContent=word; cloud.appendChild(span);
-    });
-  }
-}
-function toggleFull(){ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } }
-
-/* ===== 快速試玩 ===== */
-function renderDemo(){
-  const root=$('#view-demo'); root.innerHTML=''; root.appendChild($('#tpl-demo').content.cloneNode(true)); show(root,true);
-  $('#demo-run').onclick=()=>{
-    const cloud=$('#demo-cloud'); const txt=$('#demo-input').value||''; const tokens=splitInput(txt); const counts={};
-    tokens.forEach(t=>{ const n=normalize(t); if(!n) return; counts[n]=(counts[n]||0)+1; });
-    const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,200);
-    cloud.innerHTML=''; if(entries.length===0){ cloud.innerHTML='<div class="muted" style="height:260px;display:flex;align-items:center;justify-content:center">尚無資料</div>'; return; }
-    const max=entries[0][1], min=entries[entries.length-1][1];
-    entries.forEach(([w,f])=>{ const span=document.createElement('span'); const size=mapRange(f,min,max,16,96); span.style.fontSize=size+'px'; span.style.fontWeight=700; span.style.background='linear-gradient(135deg, var(--accent), var(--accent2))'; span.style.webkitBackgroundClip='text'; span.style.backgroundClip='text'; span.style.color='transparent'; span.textContent=w; cloud.appendChild(span); });
-  };
-}
-
-/* ===== 自我檢測 ===== */
-document.addEventListener('DOMContentLoaded', ()=>{ $('#btn-diag')?.addEventListener('click', ()=>{ location.hash='#/host'; setTimeout(runDiagnostics,60); }); });
-async function runDiagnostics(){
-  const logEl=$('#diag-log'); if(!logEl){ toast('請先到「主控台」頁面'); return; }
-  logEl.textContent=''; const log=(...a)=>{ logEl.textContent+=a.join(' ')+'\n'; logEl.scrollTop=logEl.scrollHeight; };
-  log(`firebase: ${typeof firebase}`); log(`db: ${typeof db}`);
-  try{ const r=await fetch('https://firestore.googleapis.com/$discovery/rest?version=v1'); log('🌐 連通性狀態：', r.status, r.ok?'OK':'NOT OK'); }catch(e){ log('❌ Discovery 失敗：', e.message||e); pushSummary('Discovery 失敗'); }
-  if(!db){ log('❌ db 未就緒'); return; }
-  try{ const rid='DIAG_'+randId(6); await db.collection('rooms').doc(rid).get(); log('✅ READ 呼叫成功'); }catch(e){ log('❌ READ 失敗：', e.code||e); }
-  try{
-    const id='DIAG_'+randId(6); const p=db.collection('rooms').doc(id).set({diag:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
-    const t=new Promise((_,rej)=>setTimeout(()=>rej(new Error('write-timeout')),8000)); await Promise.race([p,t]); log('✅ WRITE 成功');
-  }catch(e){ log('❌ WRITE 失敗：', e.code||e); }
-}
+/* Demo */
+function renderDemo(){const v=$('#view-demo');v.innerHTML='';v.append($('#tpl-demo').content.cloneNode(true));show(v,true);$('#demo-run').onclick=()=>{const txt=$('#demo-input').value;const tokens=splitInput(txt);const counts={};tokens.forEach(t=>counts[t]=(counts[t]||0)+1);const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#demo-cloud');c.innerHTML='';arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});};}
 </script>
 </body>
 </html>
