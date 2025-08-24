@@ -21,7 +21,7 @@
   .card{background:var(--card);padding:20px;border-radius:16px;margin-bottom:16px;border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.25)}
   .btn{padding:8px 14px;border-radius:8px;cursor:pointer;background:var(--btn);color:var(--text);border:1px solid var(--btn-border)}
   .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none;color:#fff}
-  .btn.danger{background:var(--danger);border:1px solid var(--danger-border);color:#7f1d1d}
+  .btn.danger{background:var(--danger);border:1px solid var(--danger-border);color:#fff}
   .btn.ghost{background:transparent;border:1px dashed var(--btn-border)}
   .btn:hover{filter:brightness(1.06)}
   .input,textarea{width:100%;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--btn-border);border-radius:8px}
@@ -177,6 +177,14 @@
               </details>
             </div>
           </div>
+
+          <!-- 一鍵清除工具列 -->
+          <div class="row" style="margin:6px 0;justify-content:flex-end">
+            <button class="btn danger" id="btn-clear-current">清空本題回覆</button>
+            <button class="btn danger" id="btn-clear-room">清空本房所有題回覆</button>
+            <span id="clear-status" class="muted"></span>
+          </div>
+
           <div id="display-area" style="margin-top:10px"></div>
         </div>
       </div>
@@ -438,6 +446,10 @@ async function initDisplay(roomFromHash){
   const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); else $('#qrCorner')?.classList.add('hidden'); },180);
   input.addEventListener('input',previewQR);
 
+  // 綁定清除按鈕
+  $('#btn-clear-current').onclick=clearCurrentQuestionResponses;
+  $('#btn-clear-room').onclick=clearAllQuestionsInRoom;
+
   const enter=async (rid)=>{
     if(!rid){alert('請輸入房號');return;}
     currentRoom=rid; roomBadge.textContent=rid; input.value=rid;
@@ -535,6 +547,72 @@ async function hideAllBad(){
   await Promise.all(works); alert('已隱藏命中敏感詞內容');
 }
 
+/* ===== 一鍵清除：核心實作 ===== */
+// 批次刪除 query（每批 batchSize 筆），直到刪完
+async function deleteQueryBatch(qry, batchSize = 300, onProgress = null){
+  let total=0, round=0;
+  while(true){
+    const snap = await qry.limit(batchSize).get();
+    if(snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach(doc=>batch.delete(doc.ref));
+    await batch.commit();
+    total += snap.size; round++;
+    if(typeof onProgress==='function') onProgress({total,round,batch: snap.size});
+    // 讓 UI 有機會刷新
+    await new Promise(res=>setTimeout(res,30));
+  }
+  return total;
+}
+
+// 清空目前題目的所有 responses
+async function clearCurrentQuestionResponses(){
+  if(!currentQId){alert('請先選擇左側題目');return;}
+  if(!confirm('⚠️ 確認要清空「本題」的所有回覆嗎？此動作不可復原。')) return;
+  const status=$('#clear-status');
+  try{
+    status.textContent='清除中（本題）…';
+    const colRef = db.collection('questions').doc(currentQId).collection('responses');
+    const total = await deleteQueryBatch(colRef, 300, p=>status.textContent=`清除中（本題）：已刪 ${p.total} 筆…`);
+    status.textContent=`✅ 已清除本題 ${total} 筆回覆`;
+    // 重新渲染
+    const qdoc=await db.collection('questions').doc(currentQId).get();
+    const q=qdoc.data();
+    showQ(currentQId,q,false);
+    setTimeout(()=>status.textContent='',2000);
+  }catch(e){
+    status.textContent='❌ 清除失敗'; showErr('清除本題回覆失敗：'+e);
+  }
+}
+
+// 清空本房號底下所有題目的 responses
+async function clearAllQuestionsInRoom(){
+  if(!currentRoom){alert('請先輸入並進入房號');return;}
+  if(!confirm(`⚠️ 確認要清空「房號 ${currentRoom}」底下所有題目的回覆嗎？此動作不可復原。`)) return;
+  const status=$('#clear-status');
+  try{
+    status.textContent='清除中（整個房號）…';
+    const qs = await db.collection('questions').where('roomId','==',currentRoom).get();
+    let grand=0, idx=0;
+    for(const doc of qs.docs){
+      idx++;
+      const qid = doc.id;
+      const colRef = db.collection('questions').doc(qid).collection('responses');
+      const subtotal = await deleteQueryBatch(colRef, 300, p=>status.textContent=`清除中（第 ${idx}/${qs.size} 題）：已刪 ${grand+p.total} 筆…`);
+      grand += subtotal;
+    }
+    status.textContent=`✅ 已清除本房所有題回覆，共 ${grand} 筆`;
+    // 若目前有題目，重繪
+    if(currentQId){
+      const qdoc=await db.collection('questions').doc(currentQId).get();
+      const q=qdoc.data(); showQ(currentQId,q,false);
+    }
+    setTimeout(()=>status.textContent='',3000);
+  }catch(e){
+    status.textContent='❌ 清除失敗'; showErr('清除房號所有回覆失敗：'+e);
+  }
+}
+
 /* 三種渲染 */
 function renderQA(qid,area){
   const showHidden=$('#show-hidden');
@@ -581,7 +659,7 @@ function renderPoll(qid,opts,area){
 }
 
 /* ===== 參與者 join ===== */
-function inputUI(tag,attrs={},parent){const el=document.createElement(tag);Object.assign(el,attrs);parent&&parent.appendChild(el);return el;}
+function inputUI(tag,attrs={},parent){const el=document.createElement('element'===tag? 'div':tag);Object.assign(el,attrs);parent&&parent.appendChild(el);return el;}
 let joinUnsubRoom=null, joinCurrentQ=null, joinBadwords=[];
 async function initJoin(roomId){
   const badge=$('#j-room'); const promptEl=$('#j-prompt'); const area=$('#j-area'); badge.textContent=roomId||'—';
