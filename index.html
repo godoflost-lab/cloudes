@@ -10,13 +10,16 @@
     body{margin:0;background:linear-gradient(180deg,#0a0f1f,#0c152e);color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",sans-serif}
     a{color:#93c5fd} .container{max-width:1080px;margin:auto;padding:20px}
     .card{background:#12182b;border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:20px}
-    .grid{display:grid;gap:14px} .grid2{grid-template-columns:1fr} @media(min-width:900px){.grid2{grid-template-columns:1.2fr .8fr}}
+    .grid{display:grid;gap:14px} .grid2{grid-template-columns:1fr} 
+    @media(min-width:900px){.grid2{grid-template-columns:1.2fr .8fr}}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{background:#1f2937;border:1px solid #334155;color:#e5e7eb;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
-    .btn:hover{filter:brightness(1.08)} .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none}
+    .btn:hover{filter:brightness(1.08)} 
+    .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none}
     .btn.danger{background:#7f1d1d;border:1px solid #ef4444}
     .input,textarea{width:100%;background:#0b1020;border:1px solid #2b3348;border-radius:10px;color:#e5e7eb;padding:12px}
-    .muted{color:#98a2b3} .tag{display:inline-flex;align-items:center;gap:6px;background:#091020;border:1px solid #223;padding:6px 10px;border-radius:999px;color:#cbd5e1}
+    .muted{color:#98a2b3} 
+    .tag{display:inline-flex;align-items:center;gap:6px;background:#091020;border:1px solid #223;padding:6px 10px;border-radius:999px;color:#cbd5e1}
     .hidden{display:none}
     .cloud{position:relative;min-height:360px;background:#0a1126;border:1px solid #1f2a44;border-radius:16px;padding:20px;overflow:auto;text-align:center}
     .cloud span{display:inline-block;margin:6px;line-height:1.1;vertical-align:middle}
@@ -29,6 +32,8 @@
   <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -59,14 +64,14 @@
     <div id="view-student" class="hidden card"></div>
   </div>
 
-  <div class="toast hidden" id="toast"></div>
-
   <!-- 單題主控台 -->
   <template id="tpl-host-single">
     <h2>單題文字雲</h2>
     <input class="input" id="q-single" placeholder="輸入題目" />
     <button class="btn primary" id="btn-single-create">建立房間</button>
     <button class="btn" id="btn-single-next" disabled>新一題</button>
+    <button class="btn" id="btn-single-xlsx" disabled>匯出當前題目 .xlsx</button>
+    <button class="btn" id="btn-single-xlsx-all" disabled>匯出全部 .xlsx</button>
     <div id="single-info" class="hidden">
       <div class="pill">房號：<span id="rid-single"></span></div>
       <div class="qrcode"><img id="qr-single"/></div>
@@ -80,6 +85,8 @@
     <p class="muted">最多五題，每行一題：</p>
     <textarea class="input" id="qs-multi" rows="5"></textarea>
     <button class="btn primary" id="btn-multi-create">建立房間</button>
+    <button class="btn" id="btn-multi-xlsx" disabled>匯出當前題目 .xlsx</button>
+    <button class="btn" id="btn-multi-xlsx-all" disabled>匯出全部 .xlsx</button>
     <div id="multi-info" class="hidden">
       <div class="pill">房號：<span id="rid-multi"></span>　當前：<span id="idx-multi"></span></div>
       <div class="row"><button class="btn" id="btn-prev">上一題</button><button class="btn" id="btn-next">下一題</button></div>
@@ -88,7 +95,7 @@
     </div>
   </template>
 
-  <!-- 學生頁（共用） -->
+  <!-- 學生頁 -->
   <template id="tpl-student">
     <div class="grid minimal" style="gap:12px">
       <h2 id="s-mode"></h2>
@@ -117,40 +124,139 @@
   </template>
 
 <script>
+/* ---------- Firebase 初始化 ---------- */
 const firebaseConfig={apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",authDomain:"ai-test-ac0b6.firebaseapp.com",projectId:"ai-test-ac0b6"};
-firebase.initializeApp(firebaseConfig); const db=firebase.firestore();
-const $=(s,r=document)=>r.querySelector(s); const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+try{ db.settings({ forceLongPolling:true }); }catch(e){ console.warn("Firestore 設定失敗:",e); }
+
+/* ---------- 工具 ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
 const randId=(n=6)=>Math.random().toString(36).slice(2,2+n).toUpperCase();
 const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
 const splitInput=txt=>txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);
-function router(){const [p,id]=location.hash.slice(2).split('/');['view-home','view-host-single','view-host-multi','view-display','view-demo','view-student'].forEach(v=>show($('#'+v),false));({ 'host-single':renderHostSingle,'host-multi':renderHostMulti,d:renderDisplay,demo:renderDemo,s:renderStudent,'':()=>show($('#view-home'),true) }[p]||(()=>{}))(id);}window.addEventListener('hashchange',router);window.addEventListener('load',router);
 
-/* 單題 */
+/* ---------- 匯出 XLSX ---------- */
+async function exportXLSX(roomId,currentOnly){
+  const snap=await db.collection('rooms').doc(roomId).collection('responses').get();
+  const rows=[["房號","題目序號","文字","時間"]];
+  snap.forEach(doc=>{
+    const d=doc.data();
+    if(currentOnly && d.idx!==(d.currentIndex||0)) return;
+    rows.push([roomId,d.idx||0,d.text||"",d.ts?d.ts.toDate().toLocaleString():""]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Responses");
+  XLSX.writeFile(wb,`wordcloud_${roomId}_${currentOnly?"current":"all"}.xlsx`);
+}
+
+/* ---------- 路由 ---------- */
+function router(){
+  const [p,id]=location.hash.slice(2).split('/');
+  ['view-home','view-host-single','view-host-multi','view-display','view-demo','view-student']
+    .forEach(v=>show($('#'+v),false));
+  ({ 'host-single':renderHostSingle,'host-multi':renderHostMulti,
+     d:renderDisplay,demo:renderDemo,s:renderStudent,'':()=>show($('#view-home'),true)
+  }[p]||(()=>{}))(id);
+}
+window.addEventListener('hashchange',router);window.addEventListener('load',router);
+
+/* ---------- 單題主控台 ---------- */
 let ridSingle=null;
-function renderHostSingle(){const v=$('#view-host-single');v.innerHTML='';v.append($('#tpl-host-single').content.cloneNode(true));show(v,true);
-$('#btn-single-create').onclick=async()=>{const q=$('#q-single').value.trim();if(!q)return;ridSingle=randId();await db.collection('rooms').doc(ridSingle).set({mode:'single',question:q});$('#rid-single').textContent=ridSingle;$('#qr-single').src=encodeQR(location.origin+location.pathname+'#/s/'+ridSingle);$('#link-single').value=location.origin+location.pathname+'#/s/'+ridSingle;show($('#single-info'),true);$('#btn-single-next').disabled=false;};
-$('#btn-single-next').onclick=async()=>{const newQ=prompt('新題目');if(!newQ)return;await db.collection('rooms').doc(ridSingle).update({question:newQ});};}
+function renderHostSingle(){
+  const v=$('#view-host-single');v.innerHTML='';v.append($('#tpl-host-single').content.cloneNode(true));show(v,true);
+  $('#btn-single-create').onclick=async()=>{
+    const q=$('#q-single').value.trim();if(!q)return;
+    ridSingle=randId();
+    await db.collection('rooms').doc(ridSingle).set({mode:'single',question:q});
+    $('#rid-single').textContent=ridSingle;
+    $('#qr-single').src=encodeQR(location.origin+location.pathname+'#/s/'+ridSingle);
+    $('#link-single').value=location.origin+location.pathname+'#/s/'+ridSingle;
+    show($('#single-info'),true);$('#btn-single-next').disabled=false;
+    $('#btn-single-xlsx').disabled=false;$('#btn-single-xlsx-all').disabled=false;
+  };
+  $('#btn-single-next').onclick=async()=>{
+    const newQ=prompt('新題目');if(!newQ)return;
+    await db.collection('rooms').doc(ridSingle).update({question:newQ});
+  };
+  $('#btn-single-xlsx').onclick=()=>exportXLSX(ridSingle,true);
+  $('#btn-single-xlsx-all').onclick=()=>exportXLSX(ridSingle,false);
+}
 
-/* 多題 */
+/* ---------- 多題主控台 ---------- */
 let ridMulti=null;
-function renderHostMulti(){const v=$('#view-host-multi');v.innerHTML='';v.append($('#tpl-host-multi').content.cloneNode(true));show(v,true);
-$('#btn-multi-create').onclick=async()=>{const qs=splitInput($('#qs-multi').value).slice(0,5);if(qs.length==0)return;ridMulti=randId();await db.collection('rooms').doc(ridMulti).set({mode:'multi',questions:qs,currentIndex:0});$('#rid-multi').textContent=ridMulti;$('#qr-multi').src=encodeQR(location.origin+location.pathname+'#/s/'+ridMulti);$('#link-multi').value=location.origin+location.pathname+'#/s/'+ridMulti;$('#idx-multi').textContent=1;show($('#multi-info'),true);
-document.onkeydown=e=>{if(e.key==='ArrowRight')nextQ();if(e.key==='ArrowLeft')prevQ();};$('#btn-next').onclick=nextQ;$('#btn-prev').onclick=prevQ;};
-async function nextQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex<d.questions.length-1){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex+1});$('#idx-multi').textContent=d.currentIndex+2;}}
-async function prevQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex>0){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex-1});$('#idx-multi').textContent=d.currentIndex;}}}
+function renderHostMulti(){
+  const v=$('#view-host-multi');v.innerHTML='';v.append($('#tpl-host-multi').content.cloneNode(true));show(v,true);
+  $('#btn-multi-create').onclick=async()=>{
+    const qs=splitInput($('#qs-multi').value).slice(0,5);if(qs.length==0)return;
+    ridMulti=randId();
+    await db.collection('rooms').doc(ridMulti).set({mode:'multi',questions:qs,currentIndex:0});
+    $('#rid-multi').textContent=ridMulti;
+    $('#qr-multi').src=encodeQR(location.origin+location.pathname+'#/s/'+ridMulti);
+    $('#link-multi').value=location.origin+location.pathname+'#/s/'+ridMulti;
+    $('#idx-multi').textContent=1;
+    show($('#multi-info'),true);
+    document.onkeydown=e=>{if(e.key==='ArrowRight')nextQ();if(e.key==='ArrowLeft')prevQ();};
+    $('#btn-next').onclick=nextQ;$('#btn-prev').onclick=prevQ;
+    $('#btn-multi-xlsx').disabled=false;$('#btn-multi-xlsx-all').disabled=false;
+  };
+  $('#btn-multi-xlsx').onclick=()=>exportXLSX(ridMulti,true);
+  $('#btn-multi-xlsx-all').onclick=()=>exportXLSX(ridMulti,false);
+}
+async function nextQ(){
+  const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();
+  if(d.currentIndex<d.questions.length-1){
+    await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex+1});
+    $('#idx-multi').textContent=d.currentIndex+2;
+  }
+}
+async function prevQ(){
+  const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();
+  if(d.currentIndex>0){
+    await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex-1});
+    $('#idx-multi').textContent=d.currentIndex;
+  }
+}
 
-/* 學生 */
-function renderStudent(rid){const v=$('#view-student');v.innerHTML='';v.append($('#tpl-student').content.cloneNode(true));show(v,true);
-$('#s-room').textContent=rid;let room=null;db.collection('rooms').doc(rid).onSnapshot(s=>{room=s.data();if(room.mode==='single'){$('#s-mode').textContent='單題';$('#s-question').textContent=room.question;}else{$('#s-mode').textContent='多題';$('#s-question').textContent=room.questions[room.currentIndex];}});
-$('#s-send').onclick=async()=>{const raw=$('#s-text').value.trim();if(!raw)return;await db.collection('rooms').doc(rid).collection('responses').add({text:raw,ts:firebase.firestore.FieldValue.serverTimestamp(),idx:room.mode==='single'?0:room.currentIndex});$('#s-text').value='';$('#s-status').textContent='已送出';setTimeout(()=>$('#s-status').textContent='',1500);};}
+/* ---------- 學生頁 ---------- */
+function renderStudent(rid){
+  const v=$('#view-student');v.innerHTML='';v.append($('#tpl-student').content.cloneNode(true));show(v,true);
+  $('#s-room').textContent=rid;let room=null;
+  db.collection('rooms').doc(rid).onSnapshot(s=>{
+    room=s.data();
+    if(room.mode==='single'){$('#s-mode').textContent='單題';$('#s-question').textContent=room.question;}
+    else{$('#s-mode').textContent='多題';$('#s-question').textContent=room.questions[room.currentIndex];}
+  });
+  $('#s-send').onclick=async()=>{
+    const raw=$('#s-text').value.trim();if(!raw)return;
+    await db.collection('rooms').doc(rid).collection('responses').add({text:raw,ts:firebase.firestore.FieldValue.serverTimestamp(),idx:room.mode==='single'?0:room.currentIndex});
+    $('#s-text').value='';$('#s-status').textContent='已送出';setTimeout(()=>$('#s-status').textContent='',1500);
+  };
+}
 
-/* 展示 */
-function renderDisplay(rid){const v=$('#view-display');v.innerHTML='';v.append($('#tpl-display').content.cloneNode(true));show(v,true);
-$('#d-room').textContent=rid;db.collection('rooms').doc(rid).onSnapshot(s=>{const d=s.data();$('#d-question').textContent=d.mode==='single'?d.question:d.questions[d.currentIndex];});
-db.collection('rooms').doc(rid).collection('responses').onSnapshot(snap=>{const counts={};snap.forEach(doc=>{const t=doc.data().text.trim();if(!t)return;counts[t]=(counts[t]||0)+1;});const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#cloud');c.innerHTML='';arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});});}
+/* ---------- 大螢幕展示 ---------- */
+function renderDisplay(rid){
+  const v=$('#view-display');v.innerHTML='';v.append($('#tpl-display').content.cloneNode(true));show(v,true);
+  $('#d-room').textContent=rid;
+  db.collection('rooms').doc(rid).onSnapshot(s=>{const d=s.data();$('#d-question').textContent=d.mode==='single'?d.question:d.questions[d.currentIndex];});
+  db.collection('rooms').doc(rid).collection('responses').onSnapshot(snap=>{
+    const counts={};snap.forEach(doc=>{const t=doc.data().text.trim();if(!t)return;counts[t]=(counts[t]||0)+1;});
+    const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#cloud');c.innerHTML='';
+    arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});
+  });
+}
 
-/* Demo */
-function renderDemo(){const v=$('#view-demo');v.innerHTML='';v.append($('#tpl-demo').content.cloneNode(true));show(v,true);$('#demo-run').onclick=()=>{const txt=$('#demo-input').value;const tokens=splitInput(txt);const counts={};tokens.forEach(t=>counts[t]=(counts[t]||0)+1);const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#demo-cloud');c.innerHTML='';arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});};}
+/* ---------- Demo ---------- */
+function renderDemo(){
+  const v=$('#view-demo');v.innerHTML='';v.append($('#tpl-demo').content.cloneNode(true));show(v,true);
+  $('#demo-run').onclick=()=>{
+    const txt=$('#demo-input').value;const tokens=splitInput(txt);const counts={};
+    tokens.forEach(t=>counts[t]=(counts[t]||0)+1);
+    const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);const c=$('#demo-cloud');c.innerHTML='';
+    arr.forEach(([w,f])=>{const span=document.createElement('span');span.style.fontSize=(16+f*6)+'px';span.textContent=w;c.append(span);});
+  };
+}
 </script>
 </body>
 </html>
