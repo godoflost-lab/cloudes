@@ -2,647 +2,366 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>即時文字雲｜單題 & 多題模式</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>即時互動平台</title>
   <style>
-    :root{ --bg:#0b1020;--card:#12182b;--muted:#98a2b3;}
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0a0f1f,#0c152e);color:#e5e7eb;font-family:system-ui,"Noto Sans TC",sans-serif}
-    a{color:#93c5fd} .container{max-width:1120px;margin:auto;padding:20px}
-    .card{background:#12182b;border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:20px}
-    .grid{display:grid;gap:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{background:#1f2937;border:1px solid #334155;color:#e5e7eb;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
-    .btn:hover{filter:brightness(1.08)}
+    body{margin:0;font-family:sans-serif;background:#0b1020;color:#e5e7eb}
+    a{color:#93c5fd}
+    .container{max-width:1160px;margin:auto;padding:20px}
+    .card{background:#12182b;padding:20px;border-radius:16px;margin-bottom:16px;
+          border:1px solid #1f2937;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+    .btn{padding:8px 14px;border-radius:8px;cursor:pointer;
+         background:#1f2937;color:#e5e7eb;border:1px solid #334155}
     .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none}
     .btn.danger{background:#7f1d1d;border:1px solid #ef4444}
-    .btn.ghost{background:transparent;border:1px dashed #334155}
-    .input,textarea{width:100%;background:#0b1020;border:1px solid #2b3348;border-radius:10px;color:#e5e7eb;padding:12px}
-    .muted{color:#98a2b3}
+    .btn:hover{filter:brightness(1.1)}
+    .input,textarea{width:100%;padding:10px;background:#0b1020;color:#fff;
+                    border:1px solid #334155;border-radius:8px}
+    .pill{background:#1f2937;border:1px solid #334155;padding:6px 10px;
+          border-radius:999px;display:inline-block}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .hidden{display:none}
-    .pill{border-radius:999px;padding:6px 12px;background:#0b1533;border:1px solid #26314d;display:inline-flex;gap:6px;align-items:center}
-
-    /* 雲圖 */
-    .cloud{position:relative;min-height:420px;background:#0a1126;border:1px solid #1f2a44;border-radius:16px;padding:20px;overflow:auto;text-align:center}
-    .cloud span{display:inline-block;margin:6px;line-height:1.1;vertical-align:middle;font-weight:900}
-
-    /* 表格 */
-    table{width:100%;border-collapse:collapse;border-spacing:0}
-    th,td{border-bottom:1px solid #24324e;padding:10px 8px;text-align:left}
-    th{color:#cbd5e1;font-weight:700}
-    tr:hover{background:#0d1733}
-
-    /* 演示頁左上角 QR 固定角標 */
-    .display-qrcorner{position:fixed;left:16px;top:16px;z-index:9999;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px;padding:8px}
-    .display-qrcorner img{width:92px;height:92px;display:block}
-    .display-qrcorner .link{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;margin-top:4px}
-    @media (max-width:640px){
-      .display-qrcorner{left:8px;top:8px;padding:6px}
-      .display-qrcorner img{width:72px;height:72px}
-    }
-
-    .minimal{max-width:720px;margin:auto}
-    .tabbar{display:flex;gap:8px;margin:10px 0}
-    .tabbar .tab{padding:8px 12px;border-radius:999px;border:1px solid #2b3348;cursor:pointer}
-    .tabbar .tab.active{background:#1e293b;border-color:#3b82f6}
-    .badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#0e1a39;border:1px solid #23325a}
-    .warn{color:#fbbf24}
-    .danger-txt{color:#f87171}
+    .cloud span{display:inline-block;margin:6px;font-weight:900}
+    .bar{height:28px;margin:6px 0;background:#334155;border-radius:6px;overflow:hidden}
+    .bar-inner{height:100%;text-align:right;padding-right:6px;font-size:14px;
+               line-height:28px;color:#fff;font-weight:700}
+    #errbar{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;
+            padding:6px 10px;display:none;z-index:1000}
+    #errbar button{margin-left:10px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid #334155;text-align:left}
+    th{color:#93c5fd}
+    tr:hover{background:#1e293b}
+    .qrcode{background:#0a0f1f;border:1px solid #1f2937;border-radius:12px;
+            padding:8px;display:inline-block}
+    .copy{padding:4px 10px;border-radius:6px;border:1px solid #334155;
+          background:#0f172a;cursor:pointer}
+    .copy.ok{background:#14532d;border-color:#16a34a}
   </style>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <!-- SheetJS for Excel -->
+  <!-- SheetJS for XLSX 匯出 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <div class="row" style="justify-content:space-between;margin-bottom:14px">
-      <strong>即時文字雲（單題 / 多題）</strong>
-      <div>
-        <a class="btn" href="#/host-single">單題</a>
-        <a class="btn" href="#/host-multi">多題</a>
-        <a class="btn" href="#/d">大螢幕</a>
-        <a class="btn" href="#/demo">快速試玩</a>
-      </div>
-    </div>
+<!-- 錯誤提示面板 -->
+<div id="errbar">⚠️ <span id="errmsg"></span>
+  <button onclick="copyErr()">複製錯誤</button></div>
 
-    <div id="view-home" class="grid">
-      <h2>選擇模式</h2>
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-        <div class="card"><h3>1) 單題文字雲</h3><a class="btn primary" href="#/host-single">前往單題</a></div>
-        <div class="card"><h3>2) 多題文字雲</h3><a class="btn" href="#/host-multi">前往多題</a></div>
-        <div class="card"><h3>3) 大螢幕顯示</h3><a class="btn" href="#/d">前往展示</a></div>
-        <div class="card"><h3>4) 快速試玩</h3><a class="btn" href="#/demo">啟動試玩</a></div>
-      </div>
-    </div>
+<div class="container">
+  <h1>即時互動平台</h1>
 
-    <div id="view-host-single" class="hidden card"></div>
-    <div id="view-host-multi" class="hidden card"></div>
-    <div id="view-display" class="hidden card"></div>
-    <div id="view-demo" class="hidden card"></div>
-    <div id="view-student" class="hidden card"></div>
+  <!-- 首頁 -->
+  <div id="view-home" class="grid">
+    <div class="card"><h3>1) 新增問答</h3>
+      <button class="btn primary" onclick="goto('#/new')">前往</button></div>
+    <div class="card"><h3>2) 編輯問答 (10個存檔)</h3>
+      <button class="btn" onclick="goto('#/edit')">前往</button></div>
+    <div class="card"><h3>3) 顯示即時頁面</h3>
+      <button class="btn" onclick="goto('#/display')">前往</button></div>
+    <div class="card"><h3>4) 快速試玩</h3>
+      <button class="btn" onclick="goto('#/demo')">前往</button></div>
   </div>
 
-  <!-- 單題 -->
-  <template id="tpl-host-single">
-    <h2>單題文字雲</h2>
-    <input class="input" id="q-single" placeholder="輸入題目" />
-    <div class="row">
-      <button class="btn primary" id="btn-single-create">建立房間並儲存</button>
-      <button class="btn" id="btn-single-next" disabled>新一題</button>
-      <button class="btn" id="btn-single-xlsx" disabled>匯出當前題 .xlsx</button>
-      <button class="btn" id="btn-single-xlsx-all" disabled>匯出試題+全部結果 .xlsx</button>
+  <!-- 新增問答 -->
+  <div id="view-new" class="hidden card">
+    <h2>新增問答</h2>
+    <input class="input" id="new-question" placeholder="輸入題目"/>
+    <div class="row" style="margin:10px 0">
+      <label><input type="radio" name="qtype" value="qa" checked/> 問答蒐集</label>
+      <label><input type="radio" name="qtype" value="cloud"/> 文字雲</label>
+      <label><input type="radio" name="qtype" value="poll"/> 投票</label>
     </div>
-    <div id="single-info" class="hidden">
-      <div class="pill">房號：<span id="rid-single"></span></div>
-      <div class="qrcode"><img id="qr-single" alt="QR"/></div>
-      <input class="input" id="link-single" readonly/>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btn-open-display">前往即時文字雲</button>
-      </div>
-    </div>
-  </template>
+    <textarea class="input hidden" id="new-options" rows="3" 
+              placeholder="投票選項，每行一個"></textarea>
+    <button class="btn primary" onclick="createQuestion()">建立題目</button>
+    <div id="new-info"></div>
+  </div>
 
-  <!-- 多題（含：編輯 / 演示 分頁） -->
-  <template id="tpl-host-multi">
-    <h2>多題文字雲</h2>
+  <!-- 編輯問答 -->
+  <div id="view-edit" class="hidden card">
+    <h2>編輯問答 (最多保留10個)</h2>
+    <div id="edit-list"></div>
+  </div>
 
-    <div class="tabbar">
-      <div class="tab active" data-tab="edit">編輯題目</div>
-      <div class="tab" data-tab="present">演示題目</div>
-      <div style="margin-left:auto" class="row">
-        <span class="pill">房號：<span id="rid-multi"></span></span>
-        <button class="btn ghost" id="btn-create-room">建立/儲存房間</button>
-        <button class="btn" id="btn-multi-xlsx" disabled>匯出當前題 .xlsx</button>
-        <button class="btn" id="btn-multi-xlsx-all" disabled>一鍵下載（試題+全部結果 .xlsx）</button>
-      </div>
-    </div>
+  <!-- 顯示即時頁面 -->
+  <div id="view-display" class="hidden card">
+    <h2>顯示即時頁面</h2>
+    <div id="display-question"></div>
+    <div id="display-area"></div>
+  </div>
 
-    <!-- 編輯分頁 -->
-    <div id="tab-edit">
-      <div class="grid" style="grid-template-columns:1.2fr .8fr;align-items:start">
-        <div>
-          <h3>快速新增（每行一題，新增到清單底部）</h3>
-          <textarea class="input" id="qs-multi" rows="5" placeholder="每行一題（不限題數）"></textarea>
-          <div class="row" style="margin-top:8px">
-            <button class="btn primary" id="btn-add-qs">加入清單</button>
-            <span class="muted">已建立的題目請在右側清單管理</span>
-          </div>
-        </div>
-        <div class="card">
-          <h3 style="margin-top:0">題目清單（點「演示」切到該題）</h3>
-          <div class="row" style="gap:6px;margin-bottom:6px">
-            <button class="btn" id="btn-sort-order">排序：序號</button>
-            <button class="btn" id="btn-sort-used">排序：最後使用</button>
-            <button class="btn" id="btn-sort-updated">排序：最後修改</button>
-            <label class="row" style="gap:6px"><input type="checkbox" id="chk-show-deleted"> 顯示已刪除</label>
-          </div>
-          <div style="max-height:420px;overflow:auto">
-            <table id="tbl-questions">
-              <thead>
-                <tr>
-                  <th style="width:60px">序</th>
-                  <th>題幹</th>
-                  <th style="width:140px">最後使用</th>
-                  <th style="width:140px">最後修改</th>
-                  <th style="width:90px">回覆數</th>
-                  <th style="width:240px">操作</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="muted" id="ttl-hint" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 演示分頁 -->
-    <div id="tab-present" class="hidden">
-      <div class="row" style="margin:8px 0">
-        <span class="pill">當前：<span id="idx-multi"></span></span>
-        <button class="btn" id="btn-prev">上一題</button>
-        <button class="btn" id="btn-next">下一題</button>
-        <span class="muted">(方向鍵 ← → 亦可)</span>
-      </div>
-      <div class="row">
-        <div class="qrcode"><img id="qr-multi" alt="QR"/></div>
-        <div style="flex:1">
-          <input class="input" id="link-multi" readonly/>
-          <div class="row" style="margin-top:10px">
-            <button class="btn" id="btn-open-display-multi">前往即時文字雲</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </template>
-
-  <!-- 學生 -->
-  <template id="tpl-student">
-    <div class="grid minimal" style="gap:12px">
-      <div class="pill">房號：<span id="s-room"></span></div>
-      <div class="pill" id="s-question"></div>
-      <textarea class="input" id="s-text" rows="3" placeholder="輸入答案"></textarea>
-      <button class="btn primary" id="s-send">送出</button>
-      <div id="s-status" class="muted"></div>
-    </div>
-  </template>
-
-  <!-- 大螢幕 -->
-  <template id="tpl-display">
-    <div class="display-qrcorner">
-      <img id="qr-display" alt="QR"/>
-      <div class="link" id="link-display"></div>
-    </div>
-    <h2>即時文字雲</h2>
-    <div class="pill" id="d-room"></div>
-    <div class="pill" id="d-question"></div>
-    <div id="cloud" class="cloud"></div>
-  </template>
-
-  <!-- Demo -->
-  <template id="tpl-demo">
+  <!-- 快速試玩 -->
+  <div id="view-demo" class="hidden card">
     <h2>快速試玩</h2>
-    <textarea class="input" id="demo-input" rows="4" placeholder="以逗號或斷行分隔多個詞"></textarea>
-    <button class="btn primary" id="demo-run">產生</button>
+    <textarea class="input" id="demo-input" rows="4" 
+              placeholder="輸入字詞 (逗號/換行分隔)"></textarea>
+    <button class="btn primary" onclick="runDemo()">產生文字雲</button>
     <div id="demo-cloud" class="cloud"></div>
-  </template>
-
+  </div>
+</div>
 <script>
-/* Firebase 初始化 */
-const firebaseConfig={apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",authDomain:"ai-test-ac0b6.firebaseapp.com",projectId:"ai-test-ac0b6"};
+/* ===== 全域錯誤處理 ===== */
+window.addEventListener('error', e => showErr(e.message));
+window.addEventListener('unhandledrejection', e => showErr(e.reason));
+
+function showErr(msg){
+  const bar=document.getElementById('errbar');
+  document.getElementById('errmsg').textContent=msg;
+  bar.style.display='block';
+}
+function copyErr(){
+  navigator.clipboard.writeText(document.getElementById('errmsg').textContent);
+}
+
+/* ===== Firebase 初始化 ===== */
+const firebaseConfig={
+  apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",
+  authDomain:"ai-test-ac0b6.firebaseapp.com",
+  projectId:"ai-test-ac0b6"
+};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-try{ db.settings({ forceLongPolling:true }); }catch(e){ console.warn('Firestore settings warning:', e); }
 
-/* 小工具 */
-const $=(s,r=document)=>r.querySelector(s);
-const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
-const randId=(n=6)=>Math.random().toString(36).slice(2,2+n).toUpperCase();
-const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
-const splitInput=txt=>txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);
-
-/* 穩定配色：同詞同色 */
-function hashHue(str){ // djb2 → 0..359
-  let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h|=0; }
-  return ((h>>>0)%360);
-}
-const colorOf=word=>`hsl(${hashHue(word)},72%,56%)`;
-
-/* 30天 TTL 工具 */
-const DAY=86400000;
-const ttlDays=30;
-const withExpire=(doc)=>({ ...doc, expireAt:new Date(Date.now()+ttlDays*DAY) });
-
-/* XLSX 匯出（試題 + 結果；支援當前題/全部） */
-async function exportXLSX(roomId,{currentOnly=false}={}){
-  const roomSnap=await db.collection('rooms').doc(roomId).get();
-  if(!roomSnap.exists){ alert('房間不存在'); return; }
-  const room=roomSnap.data()||{};
-  const curIdx = room.mode==='single' ? 0 : (room.currentIndex||0);
-  const isMulti = room.mode==='multi';
-  const questions = isMulti ? (room.questions||[]) : [room.question||''];
-  const metas = room.questionsMeta || []; // 每題的 updatedAt / usedAt / isDeleted
-
-  // 讀取所有 responses（一次讀完再分組）
-  const rsSnap=await db.collection('rooms').doc(roomId).collection('responses').get();
-  const responses=[];
-  rsSnap.forEach(doc=>{
-    const d=doc.data();
-    if(currentOnly && (d.idx||0)!==curIdx) return;
-    responses.push({
-      responseId: doc.id,
-      idx: d.idx||0,
-      text: d.text||'',
-      ts: d.ts? d.ts.toDate(): null
-    });
-  });
-
-  /* Overview */
-  const overviewAoa=[
-    ["Room ID",roomId],
-    ["Mode", room.mode||'single'],
-    ["Questions", questions.length],
-    ["Export Time", new Date().toLocaleString()],
-    ["Retention", `資料將保留 ${ttlDays} 天（expireAt 由最近活動更新）`]
-  ];
-  const wsOverview=XLSX.utils.aoa_to_sheet(overviewAoa);
-
-  /* Questions */
-  const rowsQ=[["order","questionId(idx)","prompt","updatedAt","usedAt","isDeleted"]];
-  questions.forEach((q,i)=>{
-    const m=metas[i]||{};
-    rowsQ.push([
-      i+1, i,
-      q||'',
-      m.updatedAt? new Date(m.updatedAt.seconds*1000).toLocaleString(): '',
-      m.usedAt? new Date(m.usedAt.seconds*1000).toLocaleString(): '',
-      m.isDeleted? 'true':'false'
-    ]);
-  });
-  const wsQ=XLSX.utils.aoa_to_sheet(rowsQ);
-
-  /* Responses */
-  const rowsR=[["idx","text","time"]];
-  responses
-    .sort((a,b)=> (a.idx-b.idx) || ((a.ts?.getTime()||0)-(b.ts?.getTime()||0)) )
-    .forEach(r=>{
-      rowsR.push([r.idx, r.text, r.ts? r.ts.toLocaleString(): ""]);
-    });
-  const wsR=XLSX.utils.aoa_to_sheet(rowsR);
-
-  /* Workbook */
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, wsOverview, "Overview");
-  XLSX.utils.book_append_sheet(wb, wsQ, "Questions");
-  XLSX.utils.book_append_sheet(wb, wsR, currentOnly? "Responses(Current)":"Responses(All)");
-
-  XLSX.writeFile(wb,`room_${roomId}_${currentOnly?"current":"all"}.xlsx`);
+/* ===== 小工具 ===== */
+const $=s=>document.querySelector(s);
+function goto(h){location.hash=h}
+function randColor(){return `hsl(${Math.floor(Math.random()*360)},70%,55%)`;}
+function splitInput(txt){return txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);}
+function copyBtn(btn,txt){
+  btn.onclick=async()=>{
+    await navigator.clipboard.writeText(txt());
+    btn.classList.add('ok');
+    setTimeout(()=>btn.classList.remove('ok'),800);
+  }
 }
 
-/* 路由 */
+/* ===== 路由控制 ===== */
+window.addEventListener('hashchange',router);
+window.addEventListener('load',router);
+
 function router(){
-  const [p,id]=location.hash.slice(2).split('/');
-  ['view-home','view-host-single','view-host-multi','view-display','view-demo','view-student']
-    .forEach(v=>show($('#'+v),false));
-  ({
-     'host-single':renderHostSingle,
-     'host-multi':renderHostMulti,
-     d:renderDisplay,
-     demo:renderDemo,
-     s:renderStudent,
-     '':()=>show($('#view-home'),true)
-  }[p]||(()=>{}))(id);
+  ['view-home','view-new','view-edit','view-display','view-demo']
+    .forEach(id=>$('#'+id).classList.add('hidden'));
+  const [p]=location.hash.replace('#/','').split('/');
+  if(!p){$('#view-home').classList.remove('hidden');return;}
+  if(p==='new')$('#view-new').classList.remove('hidden');
+  if(p==='edit')loadEdit();
+  if(p==='display')loadDisplay();
+  if(p==='demo')$('#view-demo').classList.remove('hidden');
 }
-window.addEventListener('hashchange',router);window.addEventListener('load',router);
+</script>
+<script>
+/* ===== 新增問答 ===== */
+document.querySelectorAll('input[name=qtype]').forEach(r=>{
+  r.onchange=()=>$('#new-options').classList.toggle('hidden',r.value!=='poll');
+});
 
-/* 單題主控台 */
-let ridSingle=null;
-function renderHostSingle(){
-  const v=$('#view-host-single');v.innerHTML='';v.append($('#tpl-host-single').content.cloneNode(true));show(v,true);
-  $('#btn-single-create').onclick=async()=>{
-    const q=$('#q-single').value.trim();if(!q){alert('請輸入題目');return;}
-    ridSingle=randId();
-    await db.collection('rooms').doc(ridSingle).set(withExpire({
-      mode:'single',question:q,currentIndex:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()
-    }));
-    $('#rid-single').textContent=ridSingle;
-    const link=location.origin+location.pathname+'#/s/'+ridSingle;
-    $('#qr-single').src=encodeQR(link);
-    $('#link-single').value=link;
-    show($('#single-info'),true);
-    $('#btn-single-next').disabled=false;
-    $('#btn-single-xlsx').disabled=false;
-    $('#btn-single-xlsx-all').disabled=false;
-  };
-  $('#btn-single-next').onclick=async()=>{
-    if(!ridSingle) return;
-    const newQ=prompt('新題目');if(!newQ)return;
-    await db.collection('rooms').doc(ridSingle).update(withExpire({
-      question:newQ, currentIndex:0
-    }));
-  };
-  $('#btn-single-xlsx').onclick=()=>ridSingle&&exportXLSX(ridSingle,{currentOnly:true});
-  $('#btn-single-xlsx-all').onclick=()=>ridSingle&&exportXLSX(ridSingle,{currentOnly:false});
-  $('#btn-open-display').onclick=()=>{ if(!ridSingle)return; window.open(location.origin+location.pathname+'#/d/'+ridSingle,'_blank'); };
-}
-
-/* 多題：編輯/演示 */
-let ridMulti=null, unsubRoomMulti=null, currentRoomData=null;
-
-function renderHostMulti(){
-  const v=$('#view-host-multi');v.innerHTML='';v.append($('#tpl-host-multi').content.cloneNode(true));show(v,true);
-
-  const tabEdit=$('#tab-edit'), tabPresent=$('#tab-present');
-  const tabBtns=$$('.tabbar .tab');
-  const setTab=(name)=>{
-    tabBtns.forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
-    show(tabEdit, name==='edit');
-    show(tabPresent, name==='present');
-  };
-  tabBtns.forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-  setTab('edit');
-
-  // 建立/儲存房間（如果已存在則只更新 expireAt）
-  $('#btn-create-room').onclick=async()=>{
-    if(!ridMulti){ ridMulti=randId(); }
-    const init = {
-      mode:'multi',
-      questions: currentRoomData?.questions || [],
-      questionsMeta: currentRoomData?.questionsMeta || [],
-      currentIndex: currentRoomData?.currentIndex || 0,
-      createdAt: currentRoomData?.createdAt || firebase.firestore.FieldValue.serverTimestamp()
+async function createQuestion(){
+  try{
+    const prompt=$('#new-question').value.trim();
+    if(!prompt){alert('請輸入題目');return;}
+    const type=document.querySelector('input[name=qtype]:checked').value;
+    const q={
+      type,
+      prompt,
+      updatedAt:new Date(),
+      expireAt:new Date(Date.now()+30*86400000)
     };
-    await db.collection('rooms').doc(ridMulti).set(withExpire(init), { merge:true });
-    hydrateAfterCreate();
-  };
-
-  // 批次新增題目到清單
-  $('#btn-add-qs').onclick=async()=>{
-    const lines=splitInput($('#qs-multi').value);
-    if(lines.length===0){ alert('沒有可新增的題目'); return; }
-    if(!ridMulti){ ridMulti=randId(); }
-    const roomRef=db.collection('rooms').doc(ridMulti);
-    const snap=await roomRef.get();
-    const d=snap.exists? snap.data(): {mode:'multi',questions:[],questionsMeta:[],currentIndex:0};
-    const qArr=[...(d.questions||[])], mArr=[...(d.questionsMeta||[])];
-    const now=firebase.firestore.FieldValue.serverTimestamp();
-    lines.forEach(txt=>{
-      qArr.push(txt);
-      mArr.push({updatedAt:now, usedAt:null, isDeleted:false});
-    });
-    await roomRef.set(withExpire({mode:'multi',questions:qArr,questionsMeta:mArr, currentIndex:d.currentIndex||0, createdAt:d.createdAt||now}),{merge:true});
-    $('#qs-multi').value='';
-    ridMulti && hydrateAfterCreate();
-  };
-
-  // 排序切換
-  let sortMode='order';
-  $('#btn-sort-order').onclick=()=>{sortMode='order'; renderQuestionTable();}
-  $('#btn-sort-used').onclick =()=>{sortMode='used';  renderQuestionTable();}
-  $('#btn-sort-updated').onclick=()=>{sortMode='updated'; renderQuestionTable();}
-  $('#chk-show-deleted').onchange=()=>renderQuestionTable();
-
-  // 演示區操作
-  $('#btn-next').onclick=()=>changeIndex(1);
-  $('#btn-prev').onclick=()=>changeIndex(-1);
-  document.onkeydown=e=>{if(e.key==='ArrowRight')changeIndex(1); if(e.key==='ArrowLeft')changeIndex(-1);};
-  $('#btn-open-display-multi').onclick=()=>{ if(!ridMulti)return; window.open(location.origin+location.pathname+'#/d/'+ridMulti,'_blank'); };
-  $('#btn-multi-xlsx').onclick=()=>ridMulti&&exportXLSX(ridMulti,{currentOnly:true});
-  $('#btn-multi-xlsx-all').onclick=()=>ridMulti&&exportXLSX(ridMulti,{currentOnly:false});
-
-  function hydrateAfterCreate(){
-    $('#rid-multi').textContent=ridMulti;
-    const link=location.origin+location.pathname+'#/s/'+ridMulti;
-    $('#qr-multi').src=encodeQR(link);
-    $('#link-multi').value=link;
-    $('#btn-multi-xlsx').disabled=false;
-    $('#btn-multi-xlsx-all').disabled=false;
-
-    if(unsubRoomMulti) unsubRoomMulti();
-    unsubRoomMulti = db.collection('rooms').doc(ridMulti).onSnapshot(async s=>{
-      currentRoomData=s.data()||{};
-      renderQuestionTable();
-      const idx= currentRoomData.mode==='multi' ? (currentRoomData.currentIndex||0) : 0;
-      $('#idx-multi').textContent= (idx+1);
-      // TTL 提示（最近到期日）
-      $('#ttl-hint').innerHTML = `<span class="badge">保留</span> 題目與回應將在 <b>${ttlDays}天</b> 到期自動刪除（每次編輯或演示會延長保存期）。`;
-    });
-  }
-
-  async function changeIndex(delta){
-    if(!ridMulti || !currentRoomData) return;
-    const q= currentRoomData.questions||[];
-    let i= currentRoomData.currentIndex||0;
-    const metas=currentRoomData.questionsMeta||[];
-    // 往前或往後找到第一個非刪除的題
-    do{ i+=delta; } while(i>=0 && i<q.length && (metas[i]?.isDeleted));
-    if(i<0 || i>=q.length){ return; }
-    const now=firebase.firestore.FieldValue.serverTimestamp();
-    await db.collection('rooms').doc(ridMulti).update(withExpire({currentIndex:i, [`questionsMeta.${i}.usedAt`]: now}));
-  }
-
-  function renderQuestionTable(){
-    const tbody = $('#tbl-questions tbody'); tbody.innerHTML='';
-    if(!currentRoomData) return;
-    const q = currentRoomData.questions||[];
-    const m = currentRoomData.questionsMeta||[];
-    const showDeleted = $('#chk-show-deleted').checked;
-
-    // 回覆數：一次性聚合
-    const countsByIdx = currentRoomData._cachedCounts || {};
-    // 若尚未快取，就讀取一次
-    if(Object.keys(countsByIdx).length===0){
-      db.collection('rooms').doc(ridMulti).collection('responses').get().then(s=>{
-        const c={}; s.forEach(d=>{ const i=d.data().idx||0; c[i]=(c[i]||0)+1; });
-        currentRoomData._cachedCounts=c; renderQuestionTable(); // 重新渲染
-      });
+    if(type==='poll'){
+      q.options=splitInput($('#new-options').value);
+      if(q.options.length<2){alert('投票至少要有兩個選項');return;}
     }
-
-    // 建立列資料
-    const items = q.map((text,i)=>({
-      idx:i,
-      text,
-      usedAt: m[i]?.usedAt? new Date(m[i].usedAt.seconds*1000): null,
-      updatedAt: m[i]?.updatedAt? new Date(m[i].updatedAt.seconds*1000): null,
-      isDeleted: !!m[i]?.isDeleted,
-      replies: (currentRoomData._cachedCounts||{})[i]||0
-    }));
-
-    // 過濾已刪除
-    const filtered = items.filter(it=> showDeleted || !it.isDeleted );
-
-    // 排序
-    filtered.sort((a,b)=>{
-      if(sortMode==='order') return a.idx-b.idx;
-      if(sortMode==='used')  return (b.usedAt?.getTime()||0)-(a.usedAt?.getTime()||0);
-      if(sortMode==='updated') return (b.updatedAt?.getTime()||0)-(a.updatedAt?.getTime()||0);
-      return 0;
-    });
-
-    // 繪製
-    filtered.forEach(it=>{
-      const tr=document.createElement('tr');
-      const usedStr = it.usedAt? it.usedAt.toLocaleString() : '';
-      const updStr  = it.updatedAt? it.updatedAt.toLocaleString() : '';
-      tr.innerHTML = `
-        <td>${it.idx+1}</td>
-        <td title="${it.text}">${it.isDeleted? `<span class="danger-txt">[已刪]</span> `:''}${it.text.length>40? it.text.slice(0,40)+'…': it.text}</td>
-        <td>${usedStr}</td>
-        <td>${updStr}</td>
-        <td>${it.replies}</td>
-        <td class="row" style="gap:6px">
-          <button class="btn" data-act="present" data-idx="${it.idx}">演示</button>
-          <button class="btn" data-act="edit" data-idx="${it.idx}">編輯</button>
-          ${it.isDeleted
-            ? `<button class="btn" data-act="restore" data-idx="${it.idx}">恢復</button>`
-            : `<button class="btn danger" data-act="delete" data-idx="${it.idx}">刪除</button>`
-          }
-        </td>
-      `;
-      tbody.append(tr);
-    });
-
-    // 綁定操作
-    tbody.querySelectorAll('button[data-act]').forEach(btn=>{
-      btn.onclick=async()=>{
-        const act=btn.dataset.act, idx=parseInt(btn.dataset.idx,10);
-        if(act==='present'){
-          const now=firebase.firestore.FieldValue.serverTimestamp();
-          await db.collection('rooms').doc(ridMulti).update(withExpire({currentIndex:idx, [`questionsMeta.${idx}.usedAt`]:now}));
-          setTab('present');
-        }else if(act==='edit'){
-          const orig=currentRoomData.questions[idx]||'';
-          const txt=prompt('編輯題幹：', orig);
-          if(txt==null) return;
-          const now=firebase.firestore.FieldValue.serverTimestamp();
-          const qArr=[...(currentRoomData.questions||[])];
-          const mArr=[...(currentRoomData.questionsMeta||[])];
-          qArr[idx]=txt;
-          mArr[idx]={ ...(mArr[idx]||{}), updatedAt:now };
-          await db.collection('rooms').doc(ridMulti).update(withExpire({questions:qArr,questionsMeta:mArr}));
-        }else if(act==='delete'){
-          if(!confirm('確定要刪除這一題嗎？（軟刪，可於「顯示已刪除」恢復）')) return;
-          const mArr=[...(currentRoomData.questionsMeta||[])];
-          mArr[idx]={ ...(mArr[idx]||{}), isDeleted:true };
-          await db.collection('rooms').doc(ridMulti).update(withExpire({questionsMeta:mArr}));
-        }else if(act==='restore'){
-          const mArr=[...(currentRoomData.questionsMeta||[])];
-          mArr[idx]={ ...(mArr[idx]||{}), isDeleted:false };
-          await db.collection('rooms').doc(ridMulti).update(withExpire({questionsMeta:mArr}));
-        }
-      };
-    });
-
-    // 同步演示區 index 顯示
-    const ci = currentRoomData.currentIndex||0;
-    $('#idx-multi').textContent = (ci+1);
-  }
-
-  // 若網址上已有 roomId（例如你先前建立過）
-  const [, ridFromHash]=location.hash.slice(2).split('/');
-  if(ridFromHash){ ridMulti=ridFromHash; hydrateAfterCreate(); }
+    // Firestore: questions 集合
+    const ref=await db.collection('questions').add(q);
+    $('#new-info').innerHTML=`✅ 建立成功 ID=${ref.id}`;
+    $('#new-question').value='';$('#new-options').value='';
+  }catch(e){ showErr('建立題目失敗: '+e); }
 }
 
-/* 學生（極簡） */
-function renderStudent(rid){
-  const v=$('#view-student');v.innerHTML='';v.append($('#tpl-student').content.cloneNode(true));show(v,true);
-  $('#s-room').textContent=rid;let room=null;
-  let currentIdx=0;
-  db.collection('rooms').doc(rid).onSnapshot(s=>{
-    room=s.data()||{};
-    const isMulti=room.mode==='multi';
-    currentIdx = isMulti? (room.currentIndex||0): 0;
-    const q = isMulti ? (room.questions?.[currentIdx]||'') : (room.question||'');
-    $('#s-question').textContent=q||'';
-  });
-  $('#s-send').onclick=async()=>{
-    const raw=$('#s-text').value.trim();if(!raw)return;
-    await db.collection('rooms').doc(rid).collection('responses').add(withExpire({
-      text:raw, idx:currentIdx, ts:firebase.firestore.FieldValue.serverTimestamp()
-    }));
-    $('#s-text').value='';$('#s-status').textContent='已送出';setTimeout(()=>$('#s-status').textContent='',1500);
-  };
+/* ===== 編輯問答 ===== */
+async function loadEdit(){
+  $('#view-edit').classList.remove('hidden');
+  const list=$('#edit-list');list.innerHTML='載入中…';
+  try{
+    const snap=await db.collection('questions')
+      .orderBy('updatedAt','desc').limit(10).get();
+    list.innerHTML='';
+    if(snap.empty){list.textContent='尚無題目';return;}
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const div=document.createElement('div');div.className='card';
+      let optHTML='';
+      if(d.type==='poll' && d.options){
+        optHTML='<div class="muted">選項：'+d.options.join('、')+'</div>';
+      }
+      div.innerHTML=`
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <b>${d.prompt}</b> <span class="pill">${d.type}</span><br/>
+            <small>最後更新：${d.updatedAt?.toDate?d.updatedAt.toDate().toLocaleString():""}</small>
+            ${optHTML}
+          </div>
+          <div class="row">
+            <button class="btn" onclick="previewQ('${doc.id}')">預覽</button>
+            <button class="btn danger" onclick="delQ('${doc.id}')">刪除</button>
+          </div>
+        </div>`;
+      list.appendChild(div);
+    });
+  }catch(e){ showErr('載入題目失敗: '+e); }
 }
 
-/* 大螢幕展示（跟隨 currentIndex，題目切換時只顯示該題答案） */
-function renderDisplay(rid){
-  const v=$('#view-display');v.innerHTML='';v.append($('#tpl-display').content.cloneNode(true));show(v,true);
-  $('#d-room').textContent=rid;
+async function delQ(id){
+  if(!confirm('確定要刪除這個題目？'))return;
+  try{
+    await db.collection('questions').doc(id).delete();
+    loadEdit();
+  }catch(e){ showErr('刪除失敗: '+e); }
+}
 
-  const sLink = location.origin+location.pathname+'#/s/'+rid;
-  $('#qr-display').src=encodeQR(sLink);
-  $('#link-display').textContent=sLink;
+async function previewQ(id){
+  try{
+    const doc=await db.collection('questions').doc(id).get();
+    if(!doc.exists){alert('題目不存在');return;}
+    const d=doc.data();
+    alert(`題目：${d.prompt}\n類型：${d.type}`);
+  }catch(e){ showErr('預覽失敗: '+e); }
+}
+</script>
+<script>
+/* ===== 顯示即時頁面 ===== */
+async function loadDisplay(){
+  $('#view-display').classList.remove('hidden');
+  const qs=await db.collection('questions').orderBy('updatedAt','desc').limit(1).get();
+  if(qs.empty){$('#display-question').textContent='尚無題目';return;}
+  const qid=qs.docs[0].id;
+  const q=qs.docs[0].data();
+  $('#display-question').innerHTML=`<h3>${q.prompt}</h3><span class="pill">${q.type}</span>`;
+  if(q.type==='qa') renderQA(qid);
+  if(q.type==='cloud') renderCloud(qid);
+  if(q.type==='poll') renderPoll(qid,q.options||[]);
+}
 
-  let unsubResp=null, currentIdx=0, mode='single', questions=[];
-  const mountResponsesListener=(idx)=>{
-    if(unsubResp) unsubResp(); // 重訂閱
-    const q = db.collection('rooms').doc(rid).collection('responses').where('idx','==',idx);
-    unsubResp = q.onSnapshot(snap=>{
+/* 問答蒐集 */
+function renderQA(qid){
+  db.collection('questions').doc(qid).collection('responses')
+    .orderBy('ts').onSnapshot(s=>{
+      const div=$('#display-area');div.innerHTML='';
+      s.forEach(doc=>{
+        const d=doc.data();
+        const row=document.createElement('div');row.className='row';
+        const msg=document.createElement('div');msg.textContent=d.text;
+        msg.style.flex='1';
+        const btn=document.createElement('button');btn.textContent='❌';
+        btn.className='btn danger';btn.onclick=()=>doc.ref.delete();
+        row.appendChild(msg);row.appendChild(btn);
+        div.appendChild(row);
+      });
+    });
+}
+
+/* 文字雲 */
+function renderCloud(qid){
+  db.collection('questions').doc(qid).collection('responses')
+    .onSnapshot(s=>{
       const counts={};
-      snap.forEach(doc=>{
-        const t=(doc.data().text||'').trim(); if(!t) return;
-        counts[t]=(counts[t]||0)+1;
+      s.forEach(doc=>{
+        const t=(doc.data().text||'').trim();
+        if(t) counts[t]=(counts[t]||0)+1;
       });
       const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-      const c=$('#cloud'); c.innerHTML='';
-      if(arr.length===0){ c.innerHTML='<div class="muted">尚無資料</div>'; return; }
-      const max=arr[0][1], min=arr[arr.length-1][1];
+      const div=$('#display-area');div.className='cloud';div.innerHTML='';
+      if(arr.length===0){div.textContent='尚無資料';return;}
+      const max=arr[0][1],min=arr[arr.length-1][1];
       arr.forEach(([w,f])=>{
         const span=document.createElement('span');
-        const size = 18 + Math.pow(((f - min) / (max - min || 1)), 0.75) * 112; // 18~130，更強對比
+        const size=18+((f-min)/(max-min||1))*100;
         span.style.fontSize=size+'px';
-        span.style.color=colorOf(w); // 穩定色
+        span.style.color=randColor();
         span.textContent=w;
-        c.append(span);
+        div.appendChild(span);
       });
     });
-  };
-  db.collection('rooms').doc(rid).onSnapshot(s=>{
-    const d=s.data()||{}; mode=d.mode||'single'; questions=d.questions||[];
-    currentIdx = mode==='single'? 0 : (d.currentIndex||0);
-    const metas=d.questionsMeta||[];
-    // 若當前題被軟刪，尋找下一個未刪題
-    if(mode==='multi' && metas[currentIdx]?.isDeleted){
-      let i=currentIdx;
-      while(i<questions.length && metas[i]?.isDeleted) i++;
-      if(i>=questions.length){ i=0; while(i<questions.length && metas[i]?.isDeleted) i++; }
-      if(!metas[i]?.isDeleted){
-        db.collection('rooms').doc(rid).update(withExpire({currentIndex:i}));
-        return; // 等下一個快照
-      }
+}
+
+/* 投票長條圖 */
+function renderPoll(qid,opts){
+  db.collection('questions').doc(qid).collection('responses')
+    .onSnapshot(s=>{
+      const counts={};opts.forEach(o=>counts[o]=0);
+      s.forEach(doc=>{
+        const o=doc.data().option;
+        if(o && counts[o]!=null) counts[o]++;
+      });
+      const div=$('#display-area');div.innerHTML='';
+      Object.entries(counts).forEach(([opt,c])=>{
+        const bar=document.createElement('div');bar.className='bar';
+        const inner=document.createElement('div');inner.className='bar-inner';
+        const max=Math.max(...Object.values(counts));
+        const pct=max? (c/max*100):0;
+        inner.style.width=pct+'%';
+        inner.style.background=randColor();
+        inner.textContent=`${opt}: ${c}`;
+        bar.appendChild(inner);div.appendChild(bar);
+      });
+    });
+}
+</script>
+<script>
+/* ===== 匯出 XLSX ===== */
+async function exportXLSX(currentOnly=false){
+  try{
+    const qs=await db.collection('questions')
+      .orderBy('updatedAt','desc').limit(currentOnly?1:10).get();
+    if(qs.empty){alert('沒有題目');return;}
+    const wb=XLSX.utils.book_new();
+
+    for(const doc of qs.docs){
+      const qid=doc.id,d=doc.data();
+      const rows=[["ID",qid],["題目",d.prompt],["類型",d.type]];
+      if(d.type==='poll') rows.push(["選項", (d.options||[]).join(" / ")]);
+      const wsInfo=XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb,wsInfo,"Q_"+qid+"_info");
+
+      const rs=await db.collection('questions').doc(qid).collection('responses').get();
+      const arr=[["內容","選項","時間"]];
+      rs.forEach(r=>{
+        const dd=r.data();
+        arr.push([dd.text||"",dd.option||"",dd.ts?dd.ts.toDate().toLocaleString():""]);
+      });
+      const wsRes=XLSX.utils.aoa_to_sheet(arr);
+      XLSX.utils.book_append_sheet(wb,wsRes,"Q_"+qid+"_res");
     }
-    const qText = mode==='single'? d.question : (questions[currentIdx]||'');
-    $('#d-question').textContent = qText||'';
-    mountResponsesListener(currentIdx);
+    XLSX.writeFile(wb,"questions_export.xlsx");
+  }catch(e){showErr("匯出失敗: "+e);}
+}
+
+/* ===== TTL 模擬 (30天) ===== */
+/* Firestore 本身有 TTL 功能，這裡在寫入時就加 expireAt 欄位 */
+function withTTL(data){
+  return {...data,expireAt:new Date(Date.now()+30*86400000)};
+}
+
+/* ===== Demo ===== */
+function runDemo(){
+  const tokens=$('#demo-input').value.split(/,|\n/).map(t=>t.trim()).filter(Boolean);
+  const counts={};tokens.forEach(t=>counts[t]=(counts[t]||0)+1);
+  const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const div=$('#demo-cloud');div.innerHTML='';
+  if(arr.length===0){div.textContent='尚無資料';return;}
+  const max=arr[0][1],min=arr[arr.length-1][1];
+  arr.forEach(([w,f])=>{
+    const span=document.createElement('span');
+    const size=18+((f-min)/(max-min||1))*100;
+    span.style.fontSize=size+'px';
+    span.style.color=randColor();
+    span.textContent=w;
+    div.appendChild(span);
   });
 }
-
-/* Demo（離線測試） */
-function renderDemo(){
-  const v=$('#view-demo');v.innerHTML='';v.append($('#tpl-demo').content.cloneNode(true));show(v,true);
-  $('#demo-run').onclick=()=>{
-    const tokens=splitInput($('#demo-input').value); const counts={};
-    tokens.forEach(t=>counts[t]=(counts[t]||0)+1);
-    const arr=Object.entries(counts).sort((a,b)=>b[1]-a[1]); const c=$('#demo-cloud'); c.innerHTML='';
-    if(arr.length===0){c.innerHTML='<div class="muted">尚無資料</div>';return;}
-    const max=arr[0][1],min=arr[arr.length-1][1];
-    arr.forEach(([w,f])=>{
-      const span=document.createElement('span');
-      const size=18 + Math.pow(((f-min)/(max-min||1)),0.75)*112;
-      span.style.fontSize=size+'px';
-      span.style.color=colorOf(w);
-      span.textContent=w;
-      c.append(span);
-    });
-  };
-}
-
-/* 初始路由 */
-router();
 </script>
 </body>
 </html>
