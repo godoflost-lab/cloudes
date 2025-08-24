@@ -10,30 +10,25 @@
     body{margin:0;background:linear-gradient(180deg,#0a0f1f,#0c152e);color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",sans-serif}
     a{color:#93c5fd} .container{max-width:1080px;margin:auto;padding:20px}
     .card{background:#12182b;border:1px solid #1f2937;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:20px}
-    .grid{display:grid;gap:14px} .grid2{grid-template-columns:1fr} 
-    @media(min-width:900px){.grid2{grid-template-columns:1.2fr .8fr}}
+    .grid{display:grid;gap:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{background:#1f2937;border:1px solid #334155;color:#e5e7eb;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
     .btn:hover{filter:brightness(1.08)} 
     .btn.primary{background:linear-gradient(135deg,#2563eb,#22d3ee);border:none}
     .btn.danger{background:#7f1d1d;border:1px solid #ef4444}
     .input,textarea{width:100%;background:#0b1020;border:1px solid #2b3348;border-radius:10px;color:#e5e7eb;padding:12px}
-    .muted{color:#98a2b3} 
-    .tag{display:inline-flex;align-items:center;gap:6px;background:#091020;border:1px solid #223;padding:6px 10px;border-radius:999px;color:#cbd5e1}
+    .muted{color:#98a2b3}
     .hidden{display:none}
     .cloud{position:relative;min-height:360px;background:#0a1126;border:1px solid #1f2a44;border-radius:16px;padding:20px;overflow:auto;text-align:center}
     .cloud span{display:inline-block;margin:6px;line-height:1.1;vertical-align:middle}
     .pill{border-radius:999px;padding:6px 12px;background:#0b1533;border:1px solid #26314d}
     .qrcode{background:#0a0f1f;border:1px solid #1f2937;border-radius:16px;padding:10px}
-    .toast{position:fixed;inset:auto 20px 20px auto;background:#111827;border:1px solid #374151;border-radius:10px;padding:10px 14px;z-index:1000}
     .minimal{max-width:720px;margin:auto}
   </style>
 
-  <!-- Firebase CDN -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <!-- SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -64,14 +59,12 @@
     <div id="view-student" class="hidden card"></div>
   </div>
 
-  <!-- 單題主控台 -->
+  <!-- 單題 -->
   <template id="tpl-host-single">
     <h2>單題文字雲</h2>
     <input class="input" id="q-single" placeholder="輸入題目" />
     <button class="btn primary" id="btn-single-create">建立房間</button>
     <button class="btn" id="btn-single-next" disabled>新一題</button>
-    <button class="btn" id="btn-single-xlsx" disabled>匯出當前題目 .xlsx</button>
-    <button class="btn" id="btn-single-xlsx-all" disabled>匯出全部 .xlsx</button>
     <div id="single-info" class="hidden">
       <div class="pill">房號：<span id="rid-single"></span></div>
       <div class="qrcode"><img id="qr-single"/></div>
@@ -79,14 +72,12 @@
     </div>
   </template>
 
-  <!-- 多題主控台 -->
+  <!-- 多題 -->
   <template id="tpl-host-multi">
     <h2>多題文字雲</h2>
     <p class="muted">最多五題，每行一題：</p>
     <textarea class="input" id="qs-multi" rows="5"></textarea>
     <button class="btn primary" id="btn-multi-create">建立房間</button>
-    <button class="btn" id="btn-multi-xlsx" disabled>匯出當前題目 .xlsx</button>
-    <button class="btn" id="btn-multi-xlsx-all" disabled>匯出全部 .xlsx</button>
     <div id="multi-info" class="hidden">
       <div class="pill">房號：<span id="rid-multi"></span>　當前：<span id="idx-multi"></span></div>
       <div class="row"><button class="btn" id="btn-prev">上一題</button><button class="btn" id="btn-next">下一題</button></div>
@@ -95,7 +86,7 @@
     </div>
   </template>
 
-  <!-- 學生頁 -->
+  <!-- 學生 -->
   <template id="tpl-student">
     <div class="grid minimal" style="gap:12px">
       <h2 id="s-mode"></h2>
@@ -124,34 +115,20 @@
   </template>
 
 <script>
-/* ---------- Firebase 初始化 ---------- */
+/* Firebase 初始化 */
 const firebaseConfig={apiKey:"AIzaSyBwC8CpjB_OjIhH2Vtw5BALzLbqwBb-oP8",authDomain:"ai-test-ac0b6.firebaseapp.com",projectId:"ai-test-ac0b6"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-try{ db.settings({ forceLongPolling:true }); }catch(e){ console.warn("Firestore 設定失敗:",e); }
+try{ db.settings({ forceLongPolling:true }); }catch(e){}
 
-/* ---------- 工具 ---------- */
+/* 工具 */
 const $=(s,r=document)=>r.querySelector(s);
 const show=(el,on=true)=>el.classList[on?'remove':'add']('hidden');
 const randId=(n=6)=>Math.random().toString(36).slice(2,2+n).toUpperCase();
 const encodeQR=url=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
 const splitInput=txt=>txt.split(/\n|,|，/).map(t=>t.trim()).filter(Boolean);
 
-/* ---------- 匯出 XLSX ---------- */
-async function exportXLSX(roomId,currentOnly){
-  const snap=await db.collection('rooms').doc(roomId).collection('responses').get();
-  const rows=[["房號","題目序號","文字","時間"]];
-  snap.forEach(doc=>{
-    const d=doc.data();
-    if(currentOnly && d.idx!==(d.currentIndex||0)) return;
-    rows.push([roomId,d.idx||0,d.text||"",d.ts?d.ts.toDate().toLocaleString():""]);
-  });
-  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Responses");
-  XLSX.writeFile(wb,`wordcloud_${roomId}_${currentOnly?"current":"all"}.xlsx`);
-}
-
-/* ---------- 路由 ---------- */
+/* 路由 */
 function router(){
   const [p,id]=location.hash.slice(2).split('/');
   ['view-home','view-host-single','view-host-multi','view-display','view-demo','view-student']
@@ -162,7 +139,7 @@ function router(){
 }
 window.addEventListener('hashchange',router);window.addEventListener('load',router);
 
-/* ---------- 單題主控台 ---------- */
+/* 單題主控台 */
 let ridSingle=null;
 function renderHostSingle(){
   const v=$('#view-host-single');v.innerHTML='';v.append($('#tpl-host-single').content.cloneNode(true));show(v,true);
@@ -174,17 +151,14 @@ function renderHostSingle(){
     $('#qr-single').src=encodeQR(location.origin+location.pathname+'#/s/'+ridSingle);
     $('#link-single').value=location.origin+location.pathname+'#/s/'+ridSingle;
     show($('#single-info'),true);$('#btn-single-next').disabled=false;
-    $('#btn-single-xlsx').disabled=false;$('#btn-single-xlsx-all').disabled=false;
   };
   $('#btn-single-next').onclick=async()=>{
     const newQ=prompt('新題目');if(!newQ)return;
     await db.collection('rooms').doc(ridSingle).update({question:newQ});
   };
-  $('#btn-single-xlsx').onclick=()=>exportXLSX(ridSingle,true);
-  $('#btn-single-xlsx-all').onclick=()=>exportXLSX(ridSingle,false);
 }
 
-/* ---------- 多題主控台 ---------- */
+/* 多題主控台 */
 let ridMulti=null;
 function renderHostMulti(){
   const v=$('#view-host-multi');v.innerHTML='';v.append($('#tpl-host-multi').content.cloneNode(true));show(v,true);
@@ -199,27 +173,12 @@ function renderHostMulti(){
     show($('#multi-info'),true);
     document.onkeydown=e=>{if(e.key==='ArrowRight')nextQ();if(e.key==='ArrowLeft')prevQ();};
     $('#btn-next').onclick=nextQ;$('#btn-prev').onclick=prevQ;
-    $('#btn-multi-xlsx').disabled=false;$('#btn-multi-xlsx-all').disabled=false;
   };
-  $('#btn-multi-xlsx').onclick=()=>exportXLSX(ridMulti,true);
-  $('#btn-multi-xlsx-all').onclick=()=>exportXLSX(ridMulti,false);
 }
-async function nextQ(){
-  const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();
-  if(d.currentIndex<d.questions.length-1){
-    await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex+1});
-    $('#idx-multi').textContent=d.currentIndex+2;
-  }
-}
-async function prevQ(){
-  const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();
-  if(d.currentIndex>0){
-    await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex-1});
-    $('#idx-multi').textContent=d.currentIndex;
-  }
-}
+async function nextQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex<d.questions.length-1){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex+1});$('#idx-multi').textContent=d.currentIndex+2;}}
+async function prevQ(){const doc=await db.collection('rooms').doc(ridMulti).get();let d=doc.data();if(d.currentIndex>0){await db.collection('rooms').doc(ridMulti).update({currentIndex:d.currentIndex-1});$('#idx-multi').textContent=d.currentIndex;}}
 
-/* ---------- 學生頁 ---------- */
+/* 學生頁 */
 function renderStudent(rid){
   const v=$('#view-student');v.innerHTML='';v.append($('#tpl-student').content.cloneNode(true));show(v,true);
   $('#s-room').textContent=rid;let room=null;
@@ -235,7 +194,7 @@ function renderStudent(rid){
   };
 }
 
-/* ---------- 大螢幕展示 ---------- */
+/* 大螢幕 */
 function renderDisplay(rid){
   const v=$('#view-display');v.innerHTML='';v.append($('#tpl-display').content.cloneNode(true));show(v,true);
   $('#d-room').textContent=rid;
@@ -247,7 +206,7 @@ function renderDisplay(rid){
   });
 }
 
-/* ---------- Demo ---------- */
+/* Demo */
 function renderDemo(){
   const v=$('#view-demo');v.innerHTML='';v.append($('#tpl-demo').content.cloneNode(true));show(v,true);
   $('#demo-run').onclick=()=>{
