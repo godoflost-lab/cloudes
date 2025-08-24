@@ -38,8 +38,10 @@
   .qa-card{background:var(--bar);padding:10px 12px;margin:6px 0;border-radius:10px;display:flex;justify-content:space-between;gap:10px;border:1px solid var(--bar-border)}
   .qa-card.muted{opacity:.5}
   .cloud span{display:inline-block;margin:6px;font-weight:900}
-  .bar{height:28px;margin:8px 0;background:var(--bar);border-radius:8px;overflow:hidden;border:1px solid var(--bar-border)}
-  .bar-inner{height:100%;text-align:right;padding-right:8px;font-size:14px;line-height:28px;color:#fff;font-weight:800}
+  /* 投票條：即使 0% 也顯示標籤 */
+  .bar{position:relative;height:28px;margin:8px 0;background:var(--bar);border-radius:8px;overflow:hidden;border:1px solid var(--bar-border)}
+  .bar-inner{height:100%}
+  .bar-text{position:absolute;left:10px;top:0;right:10px;height:100%;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:800;pointer-events:none}
   /* 左上角 QR 固定角標 */
   .qr-corner{position:fixed;left:16px;top:16px;z-index:2000;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
   .qr-corner img{width:96px;height:96px;display:block;border-radius:8px}
@@ -69,7 +71,6 @@
       <button class="btn" onclick="goto('#/')">回到首頁</button>
     </div>
     <div class="row">
-      <!-- 固定顯示版不再需要「顯示 QR」按鈕，但保留複製連結的快捷 -->
       <button class="btn" onclick="copyCurrentJoin()">複製參與連結</button>
     </div>
   </div>
@@ -123,7 +124,6 @@
       <label class="pill"><input type="checkbox" id="show-deleted"> 顯示已刪除</label>
     </div>
 
-    <!-- 多選工具列 -->
     <div class="row" style="margin:6px 0">
       <label><input type="checkbox" id="pick-all"> 全選/全不選</label>
       <input class="input" id="pick-room" placeholder="指定/新建房號" style="max-width:200px">
@@ -182,7 +182,7 @@
       </div>
     </div>
 
-    <!-- 左上角固定 QR 角標（預設隱藏，進入 display/join 並有房號時自動顯示） -->
+    <!-- 左上角固定 QR 角標 -->
     <div id="qrCorner" class="qr-corner hidden">
       <img id="qrImg" alt="QR"/>
       <div class="link" id="qrLink"></div>
@@ -233,6 +233,11 @@ const colorOf=w=>`hsl(${hashHue(w)},72%,56%)`;
 const pollColors=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f43f5e'];
 const containsBad=(text,bads)=>bads.some(w=>w && text.toLowerCase().includes(w.toLowerCase()));
 function debounce(fn,wait=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}}
+function getClientId(){
+  let id=localStorage.getItem('voterId');
+  if(!id){ id='VOTER-'+Math.random().toString(36).slice(2,10).toUpperCase(); localStorage.setItem('voterId',id); }
+  return id;
+}
 
 /* ===== 主題切換 ===== */
 (function(){
@@ -241,19 +246,15 @@ function debounce(fn,wait=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout
   window.addEventListener('load',()=>{const sel=$('#themeSel'); if(sel){sel.value=saved; sel.onchange=()=>{const v=sel.value;document.body.classList.toggle('light',v==='light');localStorage.setItem('theme',v);};}});
 })();
 
-/* ===== 路由（切頁時僅在非 display/join 隱藏 QR） ===== */
+/* ===== 路由 ===== */
 window.addEventListener('hashchange',router);
 window.addEventListener('load',router);
 function router(){
   ['view-home','view-new','view-edit','view-display','view-demo','view-join'].forEach(id=>$('#'+id).classList.add('hidden'));
-
   const parts=location.hash.replace(/^#\/?/,'').split('/');
   const p=parts[0]||''; const a=parts[1];
-
-  // 僅在非 display/join 頁面時隱藏 QR；進入 display/join 由各自邏輯決定是否顯示
   const isShowQR = (p==='display' || p==='join');
   if(!isShowQR){ $('#qrCorner')?.classList.add('hidden'); }
-
   if(!p){$('#view-home').classList.remove('hidden'); loadHomePicker(); return;}
   if(p==='new')$('#view-new').classList.remove('hidden');
   if(p==='edit')loadEdit();
@@ -295,7 +296,7 @@ async function loadHomePicker(){
   try{
     const showDel=$('#home-show-deleted').checked;
     $('#home-show-deleted').onchange=loadHomePicker;
-    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(20).get(); // 無 where 避免索引
+    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(20).get();
     const items=snap.docs.map(d=>({id:d.id,data:d.data()}))
       .filter(o=> showDel ? (o.data.deleted===true) : (o.data.deleted!==true));
     if(items.length===0){ list.innerHTML='（目前沒有題目）'; return; }
@@ -435,21 +436,19 @@ function setQrCorner(roomId){
   const link=`${location.origin}${location.pathname}#/join/${roomId}`;
   $('#qrImg').src=encodeQR(link); $('#qrLink').textContent=link;
   $('#btn-copy-corner').onclick=async()=>{await navigator.clipboard.writeText(link); const b=$('#btn-copy-corner');b.classList.add('ok');setTimeout(()=>b.classList.remove('ok'),800);}
-  $('#qrCorner').classList.remove('hidden'); // 關鍵：顯示 QR
+  $('#qrCorner').classList.remove('hidden');
   $('#btn-copy-room').onclick=async()=>{await navigator.clipboard.writeText(roomId);};
   $('#btn-copy-join').onclick=async()=>{await navigator.clipboard.writeText(link);};
 }
 async function initDisplay(roomFromHash){
   const input=$('#display-room'); const sidebar=$('#sidebar'); const roomBadge=$('#room-badge');
-  const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); /* 沒房號就不要顯示 */ },180);
+  const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); },180);
   input.addEventListener('input',previewQR);
 
   const enter=async (rid)=>{
     if(!rid){alert('請輸入房號');return;}
     currentRoom=rid; roomBadge.textContent=rid; input.value=rid;
     sidebar.innerHTML='載入題目…';
-
-    // 進入房號後立即顯示 QR，不需另按鈕
     setQrCorner(rid);
 
     const rdoc=await db.collection('rooms').doc(rid).get();
@@ -576,16 +575,22 @@ function renderCloud(qid,area){
       span.style.fontSize=size+'px'; span.style.color=colorOf(w); span.textContent=w; area.appendChild(span); });
   },err=>showErr('訂閱雲圖失敗：'+err));
 }
+/* 新版投票渲染：讀取 votes（每人唯一）並總計 */
 function renderPoll(qid,opts,area){
-  return db.collection('questions').doc(qid).collection('responses').onSnapshot(s=>{
+  return db.collection('questions').doc(qid).collection('votes').onSnapshot(s=>{
     const counts={}; opts.forEach(o=>counts[o]=0);
     s.forEach(doc=>{ const o=doc.data().option; if(o!=null && counts[o]!=null) counts[o]++; });
     area.innerHTML='';
-    const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
-    Object.entries(counts).forEach(([opt,c],i)=>{ const bar=document.createElement('div');bar.className='bar';
-      const inner=document.createElement('div');inner.className='bar-inner'; inner.style.width=(c/total*100)+'%';
-      inner.style.background=pollColors[i%pollColors.length]; inner.textContent=`${opt}：${c} (${Math.round(c/total*100)}%)`;
-      bar.appendChild(inner); area.appendChild(bar); });
+    const total = Math.max(1, Object.values(counts).reduce((a,b)=>a+b,0));
+    Object.entries(counts).forEach(([opt,c],i)=>{
+      const pct = Math.round(c/total*100);
+      const bar=document.createElement('div');bar.className='bar';
+      const inner=document.createElement('div');inner.className='bar-inner';
+      inner.style.width=(c/total*100)+'%'; inner.style.background=pollColors[i%pollColors.length];
+      const text=document.createElement('div');text.className='bar-text';
+      text.innerHTML=`<span>${opt}</span><span>${c}（${pct}%）</span>`;
+      bar.appendChild(inner); bar.appendChild(text); area.appendChild(bar);
+    });
   },err=>showErr('訂閱投票失敗：'+err));
 }
 
@@ -595,16 +600,12 @@ let joinUnsubRoom=null, joinCurrentQ=null, joinBadwords=[];
 async function initJoin(roomId){
   const badge=$('#j-room'); const promptEl=$('#j-prompt'); const area=$('#j-area'); badge.textContent=roomId||'—';
   if(!roomId){
-    // 未帶房號：保持 QR 隱藏，待輸入後導航
     $('#qrCorner')?.classList.add('hidden');
     const wrap=document.createElement('div'); const inp=inputUI('input',{className:'input',placeholder:'輸入房號'}); const btn=inputUI('button',{className:'btn primary',textContent:'前往'});
     btn.onclick=()=>{ if(!inp.value.trim()) return; location.hash=`#/join/${inp.value.trim()}`; };
     wrap.appendChild(inp); wrap.appendChild(btn); area.innerHTML=''; area.appendChild(wrap); return;
   }
-
-  // 帶有房號時：立即顯示 QR
   setQrCorner(roomId);
-
   if(joinUnsubRoom) joinUnsubRoom();
   joinUnsubRoom = db.collection('rooms').doc(roomId).onSnapshot(async s=>{
     const d=s.data(); joinBadwords=Array.isArray(d?.badwords)? d.badwords : [];
@@ -626,15 +627,44 @@ function renderJoinInput(roomId,qid,q,container){
     };
     container.appendChild(ta); container.appendChild(btn);
   }else if(q.type==='poll'){
+    const voterId=getClientId();
+    let picked=null, locked=false;
+
     const wrap=document.createElement('div'); wrap.className='row';
     (q.options||[]).forEach(opt=>{
       const b=document.createElement('button'); b.className='btn'; b.textContent=opt;
-      b.onclick=async()=>{ await db.collection('questions').doc(qid).collection('responses').add(withTTL({roomId,option:opt,ts:firebase.firestore.FieldValue.serverTimestamp()}));
-        $('#j-status').textContent='已投票'; setTimeout(()=>$('#j-status').textContent='',1200);
-      };
+      b.onclick=()=>{ if(locked) return; picked=opt; updateButtons(); };
       wrap.appendChild(b);
     });
-    container.appendChild(wrap);
+    const confirmBtn=document.createElement('button'); confirmBtn.className='btn primary'; confirmBtn.textContent='確認並鎖定';
+    confirmBtn.onclick=async ()=>{
+      if(locked || !picked){ alert('請先選擇一個選項'); return; }
+      locked=true; updateButtons();
+      await db.collection('questions').doc(qid).collection('votes').doc(voterId)
+        .set(withTTL({roomId, option:picked, ts:firebase.firestore.FieldValue.serverTimestamp()}),{merge:true});
+      $('#j-status').textContent='已鎖定：'+picked; setTimeout(()=>$('#j-status').textContent='',1800);
+    };
+
+    container.appendChild(wrap); container.appendChild(confirmBtn);
+
+    function updateButtons(){
+      wrap.querySelectorAll('button').forEach(btn=>{
+        btn.style.outline = (btn.textContent===picked && !locked)? '3px solid #3b82f6':'none';
+        btn.disabled = locked;
+      });
+      confirmBtn.disabled = locked || !picked;
+    }
+
+    // 讀取是否已投票，若已投過則自動鎖定
+    db.collection('questions').doc(qid).collection('votes').doc(voterId).get().then(doc=>{
+      const d=doc.data();
+      if(d && d.option){
+        picked=d.option; locked=true; updateButtons();
+        $('#j-status').textContent='已鎖定：'+picked;
+      }else{
+        updateButtons();
+      }
+    });
   }
 }
 
@@ -662,13 +692,19 @@ async function exportXLSX(currentOnly){
 async function appendQtoWB(wb,qid,data){
   const ws1=XLSX.utils.aoa_to_sheet([["題目ID",qid],["類型",data.type],["房號",data.roomId||""],["題目",data.prompt],["建立/更新",(data.updatedAt?.toDate?data.updatedAt.toDate():new Date(data.updatedAt)).toLocaleString?.()||""],["刪除",data.deleted?"是":"否"]]);
   XLSX.utils.book_append_sheet(wb,ws1,"Q_"+qid+"_info");
+  // 匯出 responses（保留兼容），以及 votes（單人唯一）
   const rs=await db.collection('questions').doc(qid).collection('responses').get();
   const arr=[["roomId","text","option","hidden","flagged","time"]];
   rs.forEach(r=>{const d=r.data(); arr.push([d.roomId||"",d.text||"",d.option||"",d.hidden?1:0,d.flagged?1:0,d.ts?d.ts.toDate().toLocaleString():""]);});
-  const ws2=XLSX.utils.aoa_to_sheet(arr); XLSX.utils.book_append_sheet(wb,ws2,"Q_"+qid+"_responses");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(arr),"Q_"+qid+"_responses");
+
+  const vs=await db.collection('questions').doc(qid).collection('votes').get();
+  const arr2=[["voterId","roomId","option","time"]];
+  vs.forEach(v=>{const d=v.data(); arr2.push([v.id,d.roomId||"",d.option||"",d.ts?d.ts.toDate().toLocaleString():""]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(arr2),"Q_"+qid+"_votes");
 }
 
-/* ===== 任何頁面都可叫出 Join 連結（已移除顯示 QR 按鈕） ===== */
+/* ===== 任何頁面都可複製 Join 連結 ===== */
 function currentRoomGuess(){return ($('#display-room')?.value?.trim())||($('#edit-room')?.value?.trim())||currentRoom||''}
 async function copyCurrentJoin(){
   let rid=currentRoomGuess(); if(!rid){alert('尚未指定房號');return;}
