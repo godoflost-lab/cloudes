@@ -41,15 +41,6 @@
   .cloud span{display:inline-block;margin:6px;font-weight:900}
   .bar{height:28px;margin:8px 0;background:var(--bar);border-radius:8px;overflow:hidden;border:1px solid var(--bar-border)}
   .bar-inner{height:100%;text-align:right;padding-right:8px;font-size:14px;line-height:28px;color:#fff;font-weight:800}
-  /* 左上角 QR 固定角標 */
-  .qr-corner{position:fixed;left:16px;top:16px;z-index:2000;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  .qr-corner img{width:96px;height:96px;display:block;border-radius:8px}
-  .qr-corner .link{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;margin-top:6px}
-  .copy{padding:4px 10px;border-radius:6px;border:1px solid var(--btn-border);background:var(--pill);cursor:pointer}
-  .copy.ok{background:#14532d;border-color:#16a34a;color:#fff}
-  /* 錯誤條 */
-  #errbar{position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:8px 12px;display:none;z-index:3000}
-  #errbar button{margin-left:10px}
 </style>
 
 <!-- Firebase & XLSX -->
@@ -58,7 +49,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<div id="errbar"⚠️ <span id="errmsg"></span> <button class="btn" onclick="copyErr()">複製錯誤</button></div>
+<div id="errbar" style="position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:8px 12px;display:none;z-index:3000">
+ ⚠️ <span id="errmsg"></span> <button class="btn" onclick="copyErr()">複製錯誤</button>
+</div>
 
 <div class="container">
   <h1>即時互動平台</h1>
@@ -141,6 +134,34 @@
 
   <!-- 顯示頁面 -->
   <div id="view-display" class="hidden">
+    <div class="row card" style="justify-content:space-between;align-items:flex-start">
+      <div id="display-header"><h3>請從左側選擇題目</h3></div>
+      <div class="row" style="align-items:flex-start">
+        <div class="row">
+          <span class="pill">房號：<b id="room-badge">—</b></span>
+          <button class="btn" id="btn-copy-room">複製房號</button>
+        </div>
+        <details style="margin-left:6px">
+          <summary class="pill" style="cursor:pointer">敏感詞設定</summary>
+          <div style="margin-top:8px">
+            <textarea class="input" id="badwords" rows="3" placeholder="逗號或換行分隔"></textarea>
+            <div class="row" style="margin-top:6px">
+              <button class="btn" onclick="saveBadwords()">儲存到房號</button>
+              <button class="btn" onclick="hideAllBad()">一鍵隱藏不雅內容</button>
+              <label class="pill"><input type="checkbox" id="show-hidden"> 顯示已隱藏</label>
+            </div>
+          </div>
+        </details>
+
+        <!-- 右上角常駐 QR 區塊 -->
+        <div id="qrBox" style="margin-left:12px;min-width:140px;text-align:center">
+          <img id="qrImg" alt="QR" style="width:120px;height:120px;border-radius:8px;border:1px solid var(--border)"/>
+          <div class="link" id="qrLink" style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <button class="btn" id="btn-copy-join">複製連結</button>
+        </div>
+      </div>
+    </div>
+
     <div class="row card" style="justify-content:space-between">
       <div class="row">
         <input class="input" id="display-room" placeholder="輸入房號或建立" style="max-width:200px"/>
@@ -163,43 +184,15 @@
       <div class="sidebar" id="sidebar"></div>
       <div class="mainpanel">
         <div class="card">
-          <div class="row" style="justify-content:space-between;align-items:flex-start">
-            <div id="display-header"><h3>請從左側選擇題目</h3></div>
-            <div class="row">
-              <span class="pill">房號：<b id="room-badge">—</b></span>
-              <button class="btn" id="btn-copy-room">複製房號</button>
-              <button class="btn" id="btn-copy-join">複製參與連結</button>
-              <details style="margin-left:6px">
-                <summary class="pill" style="cursor:pointer">敏感詞設定</summary>
-                <div style="margin-top:8px">
-                  <textarea class="input" id="badwords" rows="3" placeholder="逗號或換行分隔"></textarea>
-                  <div class="row" style="margin-top:6px">
-                    <button class="btn" onclick="saveBadwords()">儲存到房號</button>
-                    <button class="btn" onclick="hideAllBad()">一鍵隱藏不雅內容</button>
-                    <label class="pill"><input type="checkbox" id="show-hidden"> 顯示已隱藏</label>
-                  </div>
-                </div>
-              </details>
-            </div>
-          </div>
-
           <!-- 一鍵清除工具列 -->
           <div class="row" style="margin:6px 0;justify-content:flex-end">
             <button class="btn danger" id="btn-clear-current">清空本題回覆</button>
             <button class="btn danger" id="btn-clear-room">清空本房所有題回覆</button>
             <span id="clear-status" class="muted"></span>
           </div>
-
           <div id="display-area" style="margin-top:10px"></div>
         </div>
       </div>
-    </div>
-
-    <!-- 左上角固定 QR 角標 -->
-    <div id="qrCorner" class="qr-corner hidden">
-      <img id="qrImg" alt="QR"/>
-      <div class="link" id="qrLink"></div>
-      <button class="copy" id="btn-copy-corner">複製連結</button>
     </div>
   </div>
 
@@ -225,7 +218,7 @@
 /* ===== 錯誤面板 ===== */
 window.addEventListener('error',e=>showErr(e.message));
 window.addEventListener('unhandledrejection',e=>showErr(e.reason));
-function showErr(msg){$('#errmsg').textContent=String(msg||'');$('#errbar').style.display='block';}
+function showErr(msg){$('#errmsg').textContent=String(msg||'');document.getElementById('errbar').style.display='block';}
 function copyErr(){navigator.clipboard.writeText($('#errmsg').textContent);}
 
 /* ===== Firebase ===== */
@@ -259,7 +252,6 @@ window.addEventListener('hashchange',router);
 window.addEventListener('load',router);
 function router(){
   ['view-home','view-new','view-edit','view-display','view-demo','view-join'].forEach(id=>$('#'+id).classList.add('hidden'));
-  $('#qrCorner')?.classList.add('hidden'); // 切頁先收起 QR
   const parts=location.hash.replace(/^#\/?/,'').split('/');
   const p=parts[0]||''; const a=parts[1];
   if(!p){$('#view-home').classList.remove('hidden'); loadHomePicker(); return;}
@@ -334,13 +326,14 @@ async function homeMakeAndPresent(){
   const rid=($('#home-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
   await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
   await Promise.all(ids.map(id=>db.collection('questions').doc(id).update(withTTL({roomId:rid,updatedAt:new Date()}))));
-  location.hash=`#/display/${rid}`; setTimeout(()=>setQrCorner(rid),400);
+  location.hash=`#/display/${rid}`;
 }
 async function homeMakeAndQR(){
   const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
   const rid=($('#home-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
   await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
-  setQrCorner(rid);
+  // 直接導到顯示頁，右上角常駐 QR 會顯示
+  location.hash=`#/display/${rid}`;
 }
 async function softDeleteSelectedInHome(){
   const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
@@ -447,7 +440,7 @@ async function createRoomFromSelection(){
     const rid=($('#pick-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
     await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
     await Promise.all(ids.map(id=>db.collection('questions').doc(id).update(withTTL({roomId:rid,updatedAt:new Date()}))));
-    location.hash=`#/display/${rid}`; setTimeout(()=>setQrCorner(rid),400);
+    location.hash=`#/display/${rid}`;
   }catch(e){showErr('建立/更新房號失敗：'+e);}
 }
 async function showQRForSelection(){
@@ -455,7 +448,7 @@ async function showQRForSelection(){
     const ids=selectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
     const rid=($('#pick-room').value.trim())||prompt('輸入房號（空白為自動產生）')||randId();
     await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
-    setQrCorner(rid);
+    location.hash=`#/display/${rid}`;
   }catch(e){showErr('顯示所選 QR 失敗：'+e);}
 }
 async function singleQR(qid){
@@ -463,23 +456,21 @@ async function singleQR(qid){
     const rid=prompt('輸入房號（空白為自動產生）')||randId();
     await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:[qid],currentQ:qid,updatedAt:new Date()}),{merge:true});
     await db.collection('questions').doc(qid).update(withTTL({roomId:rid,updatedAt:new Date()}));
-    setQrCorner(rid);
+    location.hash=`#/display/${rid}`;
   }catch(e){showErr('建立單題房號失敗：'+e);}
 }
 
 /* ===== 顯示頁 ===== */
 let currentRoom=null,currentQId=null,unsubResp=null,roomBadwords=[];
-function setQrCorner(roomId){
+function setQrBox(roomId){
   const link=`${location.origin}${location.pathname}#/join/${roomId}`;
-  $('#qrImg').src=encodeQR(link); $('#qrLink').textContent=link;
-  $('#btn-copy-corner').onclick=async()=>{await navigator.clipboard.writeText(link); const b=$('#btn-copy-corner');b.classList.add('ok');setTimeout(()=>b.classList.remove('ok'),800);}
-  $('#qrCorner').classList.remove('hidden');
-  $('#btn-copy-room').onclick=async()=>{await navigator.clipboard.writeText(roomId);};
+  $('#qrImg').src=encodeQR(link);
+  $('#qrLink').textContent=roomId; // 顯示房號（避免連結太長）
   $('#btn-copy-join').onclick=async()=>{await navigator.clipboard.writeText(link);};
 }
 async function initDisplay(roomFromHash){
   const input=$('#display-room'); const sidebar=$('#sidebar'); const roomBadge=$('#room-badge');
-  const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); else $('#qrCorner')?.classList.add('hidden'); },180);
+  const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrBox(v); },180);
   input.addEventListener('input',previewQR);
 
   $('#btn-clear-current').onclick=clearCurrentQuestionResponses;
@@ -488,7 +479,8 @@ async function initDisplay(roomFromHash){
   const enter=async (rid)=>{
     if(!rid){alert('請輸入房號');return;}
     currentRoom=rid; roomBadge.textContent=rid; input.value=rid;
-    sidebar.innerHTML='載入題目…'; setQrCorner(rid);
+    sidebar.innerHTML='載入題目…'; setQrBox(rid);
+    $('#btn-copy-room').onclick=async()=>{await navigator.clipboard.writeText(rid);};
 
     const rdoc=await db.collection('rooms').doc(rid).get();
     const rdata=rdoc.data()||{};
@@ -737,16 +729,13 @@ function renderJoinInput(roomId,qid,q,container){
       b.onclick=async()=>{ 
         const existing = localStorage.getItem(lockKey);
         if(existing){ setLockedUI(existing); return; }
-        // 樂觀鎖：先鎖，再寫
-        localStorage.setItem(lockKey, opt);
+        localStorage.setItem(lockKey, opt); // 樂觀鎖
         setLockedUI(opt);
         try{
           await db.collection('questions').doc(qid).collection('responses')
             .add(withTTL({roomId,option:opt,ts:firebase.firestore.FieldValue.serverTimestamp()}));
-          // 成功：維持鎖定
         }catch(e){
-          // 失敗：回滾鎖定
-          localStorage.removeItem(lockKey);
+          localStorage.removeItem(lockKey); // 回滾
           setUnlockedUI();
           if(statusEl) statusEl.textContent='投票失敗，請重試';
           showErr('投票寫入失敗：'+e);
@@ -757,7 +746,7 @@ function renderJoinInput(roomId,qid,q,container){
 
     container.appendChild(wrap);
     const chosen = localStorage.getItem(lockKey);
-    if(chosen) setLockedUI(chosen); // 進頁即反映鎖定（僅鎖本題投票按鈕）
+    if(chosen) setLockedUI(chosen);
   }
 }
 
@@ -795,7 +784,8 @@ function currentRoomGuess(){return ($('#display-room')?.value?.trim())||($('#edi
 async function quickShowQR(){
   let rid=currentRoomGuess();
   if(!rid){ rid=prompt('輸入房號（空白為自動產生）')||randId(); await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,updatedAt:new Date()}),{merge:true}); }
-  setQrCorner(rid);
+  // 直接導到顯示頁，右上角常駐 QR
+  location.hash=`#/display/${rid}`;
 }
 async function copyCurrentJoin(){
   let rid=currentRoomGuess(); if(!rid){alert('尚未指定房號');return;}
