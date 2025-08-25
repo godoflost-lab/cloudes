@@ -58,7 +58,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<div id="errbar">⚠️ <span id="errmsg"></span> <button class="btn" onclick="copyErr()">複製錯誤</button></div>
+<div id="errbar"⚠️ <span id="errmsg"></span> <button class="btn" onclick="copyErr()">複製錯誤</button></div>
 
 <div class="container">
   <h1>即時互動平台</h1>
@@ -183,7 +183,7 @@
             </div>
           </div>
 
-          <!-- 一鍵清除工具列（顯示在這裡最容易看到） -->
+          <!-- 一鍵清除工具列 -->
           <div class="row" style="margin:6px 0;justify-content:flex-end">
             <button class="btn danger" id="btn-clear-current">清空本題回覆</button>
             <button class="btn danger" id="btn-clear-room">清空本房所有題回覆</button>
@@ -303,7 +303,7 @@ async function loadHomePicker(){
   try{
     const showDel=$('#home-show-deleted').checked;
     $('#home-show-deleted').onchange=loadHomePicker;
-    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(20).get(); // 無 where 避免索引
+    const snap=await db.collection('questions').orderBy('updatedAt','desc').limit(20).get();
     const items=snap.docs.map(d=>({id:d.id,data:d.data()}))
       .filter(o=> showDel ? (o.data.deleted===true) : (o.data.deleted!==true));
     if(items.length===0){ list.innerHTML='（目前沒有題目）'; return; }
@@ -322,7 +322,6 @@ async function loadHomePicker(){
       list.appendChild(row);
     });
 
-    // 綁定首頁刪除按鈕
     $('#btn-home-softdel').onclick=softDeleteSelectedInHome;
     $('#btn-home-harddel').onclick=hardDeleteSelectedInHome;
   }catch(e){showErr('首頁載入清單失敗：'+e); list.innerHTML='';}
@@ -343,7 +342,6 @@ async function homeMakeAndQR(){
   await db.collection('rooms').doc(rid).set(withTTL({roomId:rid,playlist:ids,currentQ:ids[0],updatedAt:new Date()}),{merge:true});
   setQrCorner(rid);
 }
-// 首頁：軟刪（保留文件，只把 deleted=true）
 async function softDeleteSelectedInHome(){
   const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
   if(!confirm(`將 ${ids.length} 題標記為「已刪除」？`)) return;
@@ -355,7 +353,6 @@ async function softDeleteSelectedInHome(){
     loadHomePicker();
   }catch(e){s.textContent='❌ 失敗'; showErr('首頁軟刪失敗：'+e);}
 }
-// 首頁：硬刪（永久刪題目＋清空其 responses）
 async function hardDeleteSelectedInHome(){
   const ids=homeSelectedIds(); if(ids.length===0){alert('請先勾選題目');return;}
   if(!confirm(`⚠️ 將永久刪除 ${ids.length} 題與其所有回覆，無法復原，確認？`)) return;
@@ -485,7 +482,6 @@ async function initDisplay(roomFromHash){
   const previewQR=debounce(()=>{ const v=input.value.trim(); if(v) setQrCorner(v); else $('#qrCorner')?.classList.add('hidden'); },180);
   input.addEventListener('input',previewQR);
 
-  // 讓清除按鈕在顯示頁「確實可見且有綁定」
   $('#btn-clear-current').onclick=clearCurrentQuestionResponses;
   $('#btn-clear-room').onclick=clearAllQuestionsInRoom;
 
@@ -599,7 +595,7 @@ async function deleteQueryBatch(qry, batchSize = 300, onProgress = null){
     await batch.commit();
     total += snap.size;
     if(typeof onProgress==='function') onProgress({total,batch:snap.size});
-    await new Promise(res=>setTimeout(res,30)); // 讓 UI 有機會刷新
+    await new Promise(res=>setTimeout(res,30));
   }
   return total;
 }
@@ -612,7 +608,6 @@ async function clearCurrentQuestionResponses(){
     const colRef = db.collection('questions').doc(currentQId).collection('responses');
     const total = await deleteQueryBatch(colRef, 300, p=>status.textContent=`清除中（本題）：已刪 ${p.total} 筆…`);
     status.textContent=`✅ 已清除本題 ${total} 筆回覆`;
-    // 重新渲染
     const qdoc=await db.collection('questions').doc(currentQId).get();
     const q=qdoc.data();
     showQ(currentQId,q,false);
@@ -647,7 +642,7 @@ async function clearAllQuestionsInRoom(){
   }
 }
 
-/* 三種渲染 */
+/* 三種渲染（顯示頁） */
 function renderQA(qid,area){
   const showHidden=$('#show-hidden');
   return db.collection('questions').doc(qid).collection('responses').orderBy('ts').onSnapshot(s=>{
@@ -722,16 +717,47 @@ function renderJoinInput(roomId,qid,q,container){
       ta.value=''; $('#j-status').textContent=hit?'已送出（待審）':'已送出'; setTimeout(()=>$('#j-status').textContent='',1200);
     };
     container.appendChild(ta); container.appendChild(btn);
-  }else if(q.type==='poll'){
+  } else if(q.type==='poll'){
+    /* 單題投票答題「樂觀鎖定」：按下即鎖 UI（同裝置），Firestore 寫入失敗才回滾 */
+    const lockKey = `pollLock:${roomId}:${qid}`;
     const wrap=document.createElement('div'); wrap.className='row';
+    const statusEl = document.getElementById('j-status');
+
+    const setLockedUI = (chosenText=null) => {
+      wrap.querySelectorAll('button').forEach(b=>{ b.disabled = true; b.classList.add('muted'); });
+      if(statusEl) statusEl.textContent = chosenText ? `已投票（${chosenText}，本題鎖定）` : '已投票（本題鎖定）';
+    };
+    const setUnlockedUI = () => {
+      wrap.querySelectorAll('button').forEach(b=>{ b.disabled = false; b.classList.remove('muted'); });
+      if(statusEl) statusEl.textContent = '';
+    };
+
     (q.options||[]).forEach(opt=>{
       const b=document.createElement('button'); b.className='btn'; b.textContent=opt;
-      b.onclick=async()=>{ await db.collection('questions').doc(qid).collection('responses').add(withTTL({roomId,option:opt,ts:firebase.firestore.FieldValue.serverTimestamp()}));
-        $('#j-status').textContent='已投票'; setTimeout(()=>$('#j-status').textContent='',1200);
+      b.onclick=async()=>{ 
+        const existing = localStorage.getItem(lockKey);
+        if(existing){ setLockedUI(existing); return; }
+        // 樂觀鎖：先鎖，再寫
+        localStorage.setItem(lockKey, opt);
+        setLockedUI(opt);
+        try{
+          await db.collection('questions').doc(qid).collection('responses')
+            .add(withTTL({roomId,option:opt,ts:firebase.firestore.FieldValue.serverTimestamp()}));
+          // 成功：維持鎖定
+        }catch(e){
+          // 失敗：回滾鎖定
+          localStorage.removeItem(lockKey);
+          setUnlockedUI();
+          if(statusEl) statusEl.textContent='投票失敗，請重試';
+          showErr('投票寫入失敗：'+e);
+        }
       };
       wrap.appendChild(b);
     });
+
     container.appendChild(wrap);
+    const chosen = localStorage.getItem(lockKey);
+    if(chosen) setLockedUI(chosen); // 進頁即反映鎖定（僅鎖本題投票按鈕）
   }
 }
 
