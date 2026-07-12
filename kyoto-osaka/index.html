@@ -32,131 +32,44 @@ main{max-width:920px;margin:auto;padding:18px 14px 110px}
 .day-head h2{margin:.3rem 0;font-size:clamp(1.45rem,5vw,2.1rem);line-height:1.25}
 .theme{display:inline-block;background:linear-gradient(90deg,#e8f7df,#fff3b8);color:#3f7a3d;padding:5px 11px;border-radius:99px;font-size:.86rem;font-weight:700}
 .summary{margin:14px 0 0;color:#475867}
-.day-photo{margin-top:16px;border-radius:20px;overflow:hidden;position:relative;min-height:210px;background:#dcebd7;box-shadow:var(--shadow)}
-.day-photo img{width:100%;height:clamp(210px,40vw,340px);display:block;object-fit:cover}
-.day-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(20,55,28,.48))}
-.photo-label{position:absolute;left:15px;bottom:12px;z-index:2;color:#fff;font-size:.82rem;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.45)}
-.timeline{margin-top:22px;position:relative;padding-left:24px;display:grid;gap:0}
-.timeline::before{content:"";position:absolute;left:11px;top:15px;bottom:15px;width:3px;border-radius:9px;background:linear-gradient(#7abb62,#d6e9a8)}
-.item{position:relative;display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--card);border:1px solid var(--line);
-border-radius:18px;padding:15px;margin-bottom:14px;box-shadow:0 5px 18px rgba(47,93,58,.08)}
-.item::before{content:"";position:absolute;left:-20px;top:23px;width:13px;height:13px;border-radius:50%;background:#65a957;border:4px solid #f1faee;box-shadow:0 0 0 2px #65a957}
-.time{font-weight:800;color:#448043;font-size:.93rem;letter-spacing:.02em}
-.item h3{margin:0 0 4px;font-size:1.05rem}
+.timeline{margin-top:18px;display:grid;gap:12px}
+.item{display:grid;grid-template-columns:44px 1fr;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 5px 18px rgba(47,93,58,.08)}
+.icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,#e8f7df,#fff2b5);display:grid;place-items:center;font-size:1.35rem;border:1px solid #d8eabf}
+.item h3{margin:0 0 4px;font-size:1.03rem}
 .item p{margin:0;color:#566672;font-size:.94rem}
 .tips{margin-top:18px;background:var(--cream);border:1px solid #f0dfb9;border-radius:18px;padding:16px}
 .tips h3{margin:0 0 8px;font-size:1rem}
 .tips ul{margin:0;padding-left:1.2rem}
-.map-btn{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;margin-top:16px;
-padding:13px;border-radius:14px;background:linear-gradient(90deg,#4f934f,#7abf63);color:white;text-decoration:none;font-weight:700;box-shadow:0 6px 16px rgba(79,147,79,.22)}
-.pager{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
-border-top:1px solid var(--line);padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));
-display:grid;grid-template-columns:1fr auto 1fr;gap:9px}
+.map-btn{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;margin-top:16px;padding:13px;border-radius:14px;background:linear-gradient(90deg,#4f934f,#7abf63);color:white;text-decoration:none;font-weight:700;box-shadow:0 6px 16px rgba(79,147,79,.22)}
+.pager{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto 1fr;gap:9px}
 .pager button{border:0;border-radius:14px;padding:12px 10px;cursor:pointer;font-weight:700}
 .prev,.next{background:var(--navy);color:#fff}
 .prev:disabled,.next:disabled{opacity:.35}
 .home{background:#edf6e9;color:var(--navy);min-width:56px}
 .note{margin-top:16px;color:var(--muted);font-size:.82rem;text-align:center}
-@media(min-width:700px){
- .hero{padding:42px 24px 28px} main{padding-top:24px} .quick{justify-content:center}
-}
-@media print{
- .quick,.pager{display:none} main{max-width:none;padding:0} .day-head,.item{box-shadow:none}
-}
+.info-grid{display:grid;gap:10px;margin-top:16px}
+.info-card{background:#f7fbef;border:1px solid #d7e8c8;border-radius:15px;padding:12px 14px}
+.info-card strong{display:block;color:#3f7a3d;margin-bottom:2px}
+.transport{margin-top:16px;background:#eef8ff;border:1px solid #cfe4f1;border-radius:18px;padding:16px}
+.transport h3{margin:0 0 8px;font-size:1rem;color:#315f78}
+.transport ul{margin:0;padding-left:1.2rem}
+@media(min-width:700px){.hero{padding:42px 24px 28px} main{padding-top:24px} .timeline{grid-template-columns:1fr 1fr}.item{min-height:150px} .quick{justify-content:center}}
+@media print{.quick,.pager{display:none} main{max-width:none;padding:0} .day-head,.item{box-shadow:none}}
 </style>
 </head>
 <body>
-<header class="hero">
-  <div class="hero-inner">
-    <div class="kicker">FAMILY TRIP 2026</div>
-    <h1>京都・大阪八日自由行</h1>
-    <p>8/8－8/15｜6人家庭旅行｜京都・宇治・大阪・神戶・天橋立</p>
-  </div>
-</header>
-
+<header class="hero"><div class="hero-inner"><div class="kicker">FAMILY TRIP 2026</div><h1>京都・大阪八日自由行</h1><p>2026/8/8－8/15｜6人家庭旅行｜京都・宇治・大阪・神戶・天橋立</p></div></header>
 <nav class="quick" id="quick"></nav>
 <main id="app"></main>
-
-<div class="pager">
-  <button class="prev" id="prev">← 前一天</button>
-  <button class="home" id="home" aria-label="回到第一天">⌂</button>
-  <button class="next" id="next">後一天 →</button>
-</div>
-
+<div class="pager"><button class="prev" id="prev">← 前一天</button><button class="home" id="home" aria-label="回到第一天">⌂</button><button class="next" id="next">後一天 →</button></div>
 <script>
-const timelineTimes = {1: ["抵達後", "晚間", "18:30", "19:30"], 2: ["08:00", "10:30", "12:30", "15:15", "17:00"], 3: ["08:30", "10:30", "12:30", "14:00", "15:30", "16:30"], 4: ["07:45", "08:30", "10:30", "14:00", "18:00"], 5: ["08:15", "10:00", "12:15", "13:30", "16:30"], 6: ["09:30", "12:00", "14:30", "16:30", "17:30"], 7: ["07:00", "10:00", "12:30", "14:00", "16:30"], 8: ["09:00", "10:00", "12:00", "依航班"]};
-const days = [{"day": 1, "date": "8/8", "title": "抵達京都・入住與河畔散步", "theme": "移動日｜放慢步調", "summary": "抵達日本後，以入住、補給與熟悉住宿周邊為主，不安排需要預約的大型景點。", "items": [["抵達京都", "依航班與入境時間前往京都。若攜帶多件行李，從京都站搭計程車前往住宿最省力。", "🚆"], ["入住京都住宿", "MONday Apart Premium KYOTO Station KAMOGAWA。最近車站為京阪七条站，京都站亦可步行抵達。", "🏨"], ["鴨川・正面橋散步", "若體力尚可，可在傍晚沿鴨川散步，順便熟悉七条站與附近便利商店。", "🌙"], ["晚餐與補給", "建議在京都站、七条或住宿附近簡單用餐，並購買隔日早餐、飲水與防暑用品。", "🍽️"]], "tips": ["第一天不要排遠距離景點。", "確認隔日前往清水寺與花山天文台的交通方式。"], "photo": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1400&q=82", "photo_alt": "京都街景", "map_query": "MONday Apart Premium KYOTO Station KAMOGAWA"}, {"day": 2, "date": "8/9", "title": "清水寺・花山天文台・京都咖啡", "theme": "東山文化＋天文體驗", "summary": "上午趁較涼爽時參觀清水寺，中午提早用餐，再搭計程車前往花山天文台。", "items": [["清水寺", "建議早上開門不久抵達，避開高溫與主要人潮。長輩可減少二年坂、三年坂的坡道行程。", "⛩️"], ["清水寺周邊午餐", "建議10:30至11:30之間提早用餐，並在餐廳附近預約計程車。", "🍱"], ["京都大學花山天文台", "預留足夠上山時間，建議12:30前後抵達。參加4D數位宇宙劇場或依天文台回覆調整。", "🔭"], ["LOB COFFEE HOUSE", "天文台行程結束後，下山前往三條京阪一帶休息，適合咖啡與甜點。", "☕"], ["返回住宿", "可由三條京阪搭京阪本線直達七条，步行回住宿。", "🚇"]], "tips": ["6人同行可預約大型計程車，或分乘兩輛。", "花山天文台入口較不直觀，出發前保留日文地址與官方交通說明。"], "photo": "https://prcdn.freetls.fastly.net/release_image/54747/72/54747-72-d71d48fac91f859c83540467765064cd-2048x1365.jpg?auto=webp&bg-color=fff&fit=bounds&format=jpeg&height=1350&quality=85%2C65&width=1950", "photo_alt": "清水寺與京都世界遺產景觀", "map_query": "京都大学 花山天文台"}, {"day": 3, "date": "8/10", "title": "京都大學・錦市場・宇治", "theme": "校園＋市場＋世界遺產", "summary": "上午先看京都大學，接著到錦市場吃午餐，下午前往宇治。這天景點較多，京都大學宜控制停留時間。", "items": [["京都大學吉田校區", "以鐘樓、校園公共區域與紀念品為主，建議停留60至75分鐘。", "🎓"], ["錦市場", "約10:30至12:00抵達最理想，可邊逛邊用餐；避免太晚到達，以免部分店家收攤。", "🛍️"], ["前往宇治", "可由祇園四条或三条搭京阪至中書島，再轉宇治線。", "🚆"], ["平等院", "下午參觀庭園與鳳凰堂周邊，是否進入鳳凰堂內部視現場名額與時間決定。", "🏯"], ["宇治神社・宇治上神社", "沿宇治川步行前往，兩處可連續安排；長輩可依體力選擇縮短路線。", "⛩️"], ["中村藤吉或宇治抹茶", "安排下午茶或甜點，熱門店可能候位，建議保留替代店家。", "🍵"]], "tips": ["宇治行程至少保留4小時。", "若上午行程延誤，優先保留平等院與宇治神社，京都大學縮短即可。"], "photo": "https://images.unsplash.com/photo-1493780474015-ba834fd0ce2f?auto=format&fit=crop&w=1400&q=82", "photo_alt": "京都寺院與庭園景觀", "map_query": "平等院 宇治"}, {"day": 4, "date": "8/11", "title": "京都移動大阪・勝尾寺・象印食堂", "theme": "跨城移動＋北大阪", "summary": "建議前一天將大件行李宅配至大阪住宿，當天直接由京都前往新大阪，再往箕面萱野與勝尾寺。", "items": [["京都退房", "大件行李若已宅配，全家僅攜帶隨身包移動；若未宅配，可在新大阪寄放。", "🧳"], ["京都 → 新大阪 → 箕面萱野", "搭JR至新大阪，再轉御堂筋線／北大阪急行直達箕面萱野。", "🚆"], ["勝尾寺", "由箕面萱野轉巴士或兩輛計程車。建議上午到訪，停留約1.5至2小時。", "🔴"], ["前往大阪住宿", "從箕面萱野搭御堂筋線直達大國町，住宿位於大國町站附近。", "🏨"], ["象印食堂 大阪本店", "入住休息後前往難波晚餐。大國町至難波僅一站，交通簡單。", "🍚"]], "tips": ["8/11為日本假日，巴士與景點可能較擁擠。", "勝尾寺有坡道，長輩不必走完整個境內。"], "photo": "https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=1400&q=82", "photo_alt": "日本寺院與達摩意象", "map_query": "勝尾寺"}, {"day": 5, "date": "8/12", "title": "神戶防災與藝術", "theme": "深度學習日", "summary": "兩個主要景點皆位於HAT神戶一帶，適合排在同一天；取消距離較遠的江戶屋本店。", "items": [["大阪 → 神戶岩屋／灘", "由大國町出發，前往梅田轉乘JR或阪神線至神戶東部。", "🚆"], ["阪神・淡路大震災紀念 人與防災未來中心", "建議上午參觀，內容較豐富且情緒較沉重，可保留約2小時。", "🏢"], ["附近午餐", "在HAT神戶或灘區用餐，避免中午再拉回三宮。", "🍽️"], ["兵庫縣立美術館", "下午參觀展覽與安藤忠雄建築空間，建議停留約2小時。", "🎨"], ["三宮／元町", "若體力足夠，再前往三宮或元町簡單散步、晚餐後回大阪。", "🌆"]], "tips": ["這天步行量中等，安排一段坐下休息的午餐。", "美術館展覽內容與休館資訊，出發前再次確認。"], "photo": "https://res-1.cloudinary.com/jnto/image/upload/w_1200,h_700,c_fill,f_auto,q_auto/v1508227715/hyogo/Hyogo746_10.jpg", "photo_alt": "阪神淡路大震災紀念館", "map_query": "兵庫県立美術館"}, {"day": 6, "date": "8/13", "title": "大阪科學館・水上巴士・梅田甜點", "theme": "科學＋水都", "summary": "上午與中午以室內科學館為主，下午搭船休息，傍晚到梅田吃HARBS。", "items": [["大阪市立科學館", "上午抵達，參觀展示場；星象館有固定場次，建議事先購票或先確認場次。", "🪐"], ["中之島午餐", "在科學館或中之島周邊用餐，避免跨區移動。", "🍽️"], ["大阪水上巴士 Aqua-Liner", "選擇淀屋橋、八軒家濱或大阪城港方便銜接的船班，搭船約55分鐘。", "🚤"], ["HARBS 大丸梅田店", "下午或傍晚前往，6人可能需候位或分桌，可視現場狀況改外帶。", "🍰"], ["梅田散步", "可順遊大阪站時空廣場、Grand Front或LUCUA，依長輩體力決定。", "🏙️"]], "tips": ["先鎖定星象館場次，再反推水上巴士時間。", "這天整體交通可集中在中之島與梅田。"], "photo": "https://media2.gody.vn/public/v7/place/nhat-ban/osaka/bao-tang-khoa-hoc-osaka-1_66165a06bd0b2.jpg", "photo_alt": "大阪市立科學館", "map_query": "大阪市立科学館"}, {"day": 7, "date": "8/14", "title": "天橋立・伊根舟屋包車一日遊", "theme": "海之京都", "summary": "整天保留給包車，不再追加正式景點。建議選擇天橋立＋伊根兩地，不要再塞入美山。", "items": [["大阪住宿接送", "向KKday確認是否可於大國町住宿接送、總時數、超時費、高速費與停車費。", "🚐"], ["天橋立", "可安排View Land或傘松公園，依包車動線選擇；長輩可搭纜車，避免長距離步行。", "🌊"], ["當地午餐", "建議預留60分鐘，並請司機協助安排適合6人的餐廳。", "🦀"], ["伊根舟屋", "安排舟屋散步或遊船，行程以悠閒觀景為主。", "⛵"], ["返回大阪", "傍晚返程，旺季可能塞車，不建議當晚再預約固定時間的高價餐廳。", "🚐"]], "tips": ["確認車型能舒適乘坐6位乘客。", "8月為旺季，包車最好提早預訂。", "當晚只安排住宿附近簡單晚餐。"], "photo": "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?auto=format&fit=crop&w=1400&q=82", "photo_alt": "日本海岸與海之京都景觀", "map_query": "天橋立"}, {"day": 8, "date": "8/15", "title": "大阪收尾・退房與返程", "theme": "緩衝日｜依航班調整", "summary": "最後一天以退房、採買與前往機場為主。若航班較晚，可安排難波周邊短程活動。", "items": [["退房與寄放行李", "先向住宿確認退房後是否可寄放行李。", "🧳"], ["難波周邊自由活動", "可依時間選擇高島屋、南海難波、黑門市場或木津市場，不安排遠距離景點。", "🛍️"], ["最後採買", "集中購買伴手禮、藥妝與零食，避免前幾天一路攜帶。", "🎁"], ["前往機場", "依機場與航班時間，至少預留足夠搭車、托運與安檢時間。", "✈️"]], "tips": ["最後一天的詳細安排需依航班時間決定。", "大國町前往難波方便，再轉南海電鐵前往關西機場。"], "photo": "https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=1400&q=82", "photo_alt": "大阪城市景觀", "map_query": "大国町駅"}];
-let current = Number(location.hash.replace('#day','')) || 1;
-if(current < 1 || current > 8) current = 1;
-
-const app = document.getElementById('app');
-const quick = document.getElementById('quick');
-const prev = document.getElementById('prev');
-const next = document.getElementById('next');
-
-function renderChips(){
-  quick.innerHTML = days.map(d => `<button class="day-chip ${d.day===current?'active':''}" data-day="${d.day}">D${d.day}・${d.date}</button>`).join('');
-  quick.querySelectorAll('button').forEach(b => b.onclick = () => go(Number(b.dataset.day)));
-  const active = quick.querySelector('.active');
-  active?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
-}
-
-function render(){
-  const d = days[current-1];
-  document.title = `第${d.day}天 ${d.title}｜京都大阪八日自由行`;
-  app.innerHTML = `
-    <section class="day-head">
-      <div class="day-no">DAY ${d.day} <span>｜</span> ${d.date}</div>
-      <h2>${d.title}</h2>
-      <span class="theme">${d.theme}</span>
-      <p class="summary">${d.summary}</p>
-    </section>
-    <figure class="day-photo">
-      <img src="${d.photo}" alt="${d.photo_alt}" loading="lazy" referrerpolicy="no-referrer">
-      <figcaption class="photo-label">${d.photo_alt}｜行程意象照片</figcaption>
-    </figure>
-    <section class="timeline">
-      ${d.items.map((x,i) => `
-        <article class="item">
-          <div class="time">${timelineTimes[d.day][i] || ''}</div>
-          <div><h3>${x[2]} ${x[0]}</h3><p>${x[1]}</p></div>
-        </article>`).join('')}
-    </section>
-    <section class="tips">
-      <h3>當日提醒</h3>
-      <ul>${d.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
-    </section>
-    <a class="map-btn" target="_blank" rel="noopener"
-       href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.map_query)}">📍 在 Google Maps 開啟主要地點</a>
-    <p class="note">行程時間仍應依預約、店休、交通與長輩當日體力彈性調整。</p>
-  `;
-  prev.disabled = current===1;
-  next.disabled = current===8;
-  renderChips();
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function go(n){
-  if(n<1||n>8) return;
-  current=n;
-  history.replaceState(null,'',`#day${n}`);
-  render();
-}
-prev.onclick=()=>go(current-1);
-next.onclick=()=>go(current+1);
-document.getElementById('home').onclick=()=>go(1);
-document.addEventListener('error', (e) => {
-  if(e.target.tagName === 'IMG'){
-    e.target.style.display='none';
-    e.target.parentElement.style.minHeight='170px';
-    e.target.parentElement.querySelector('.photo-label').textContent='照片暫時無法載入，行程內容仍可正常使用';
-  }
-}, true);
-window.addEventListener('hashchange',()=>{
-  const n=Number(location.hash.replace('#day',''));
-  if(n>=1&&n<=8){current=n;render();}
-});
-render();
+const days = [{"day":1,"date":"8/8（六）","title":"台北出發・抵達京都","theme":"航班＋機場交通＋入住","summary":"虎航15:15自台北起飛，17:00抵達關西機場。入境、領行李後搭JR關西機場特急HARUKA直達京都站，再前往京都住宿。","info":[["✈️ 去程航班","虎航｜台北 → 大阪關西機場｜15:15 → 17:00"],["🏨 京都住宿","8/8－8/11｜387-1 Shiogamachō, Shimogyo Ward, Kyoto 600-8103"]],"items":[["關西機場入境","17:00抵達後，預留約60至90分鐘辦理入境、領取行李與前往關西機場站。","🛬"],["HARUKA：關西機場 → 京都站","JR HARUKA可由關西機場直達京都站，適合帶行李的6人家庭。建議事先購買或抵達後於JR綠色售票機／售票處取票。","🚆"],["京都站 → 京都住宿","最省力方式是由京都站搭兩輛計程車，約10至15分鐘；大件行李多時不建議再轉地下鐵與步行。","🚕"],["入住與晚餐","預估約20:00前後抵達住宿。當晚以附近簡單用餐、購買飲水與隔日早餐為主。","🏨"]],"transport":["建議路線：關西機場站 → JR特急HARUKA → 京都站 → 計程車 → 住宿。","HARUKA屬特急列車，除基本車資外另需特急券；可使用指定席，6人同行更容易坐在一起。","若班機或入境延誤，直接搭下一班HARUKA即可，不要安排當晚固定預約。"],"tips":["京都住宿位於下京區塩竈町一帶，不是先前提到的七条站旁MONday Apart。","第一晚只安排入住，避免長輩在晚間拖行行李。"],"map_query":"387-1 Shiogamacho Shimogyo Ward Kyoto"},{"day":2,"date":"8/9（日）","title":"清水寺・花山天文台・京都咖啡","theme":"東山文化＋天文體驗","summary":"上午趁較涼爽時參觀清水寺，中午提早用餐，再搭計程車前往花山天文台。","info":[["🏨 出發地","京都住宿｜387-1 Shiogamachō, Shimogyo Ward"]],"items":[["住宿 → 清水寺","建議早上搭計程車直達清水坂或五条坂附近，6人分乘兩車，減少夏季步行與轉乘。","🚕"],["清水寺","建議開門後不久抵達，避開高溫與主要人潮。長輩可減少二年坂、三年坂的坡道行程。","⛩️"],["清水寺周邊午餐","建議10:30至11:30提早用餐，並請餐廳協助叫車。","🍱"],["清水寺 → 花山天文台","直接搭計程車上山最簡便；提醒司機由東山Driveway、阿含宗入口方向進入。","🔭"],["天文台 → 三條京阪","參觀後搭計程車下山至三條京阪／河原町一帶，再到LOB COFFEE HOUSE休息。","☕"],["返回住宿","三條京阪可搭京阪本線至清水五条，再步行或短程計程車回住宿。","🚇"]],"transport":["上午：住宿 → 計程車 → 清水寺。","中午：清水寺周邊 → 計程車 → 花山天文台。","下午：花山天文台 → 計程車 → 三條京阪；回程可搭京阪至清水五条。"],"tips":["6人同行可預約大型計程車，或分乘兩輛。","花山天文台入口較不直觀，出發前保留日文地址與官方交通說明。"],"map_query":"京都大学 花山天文台"},{"day":3,"date":"8/10（一）","title":"京都大學・錦市場・宇治","theme":"校園＋市場＋世界遺產","summary":"上午京都大學，接著到錦市場吃午餐，下午搭京阪前往宇治。","info":[["🏨 住宿最後一晚","京都住宿｜翌日8/11退房"]],"items":[["住宿 → 京都大學吉田校區","可由清水五条搭京阪至出町柳，再轉公車或計程車；6人同行建議最後一段搭計程車。","🎓"],["京都大學吉田校區","以鐘樓、校園公共區域與紀念品為主，建議停留60至75分鐘。","🏫"],["京都大學 → 錦市場","搭公車或計程車前往四条河原町／錦市場，避免多次轉乘。","🚕"],["錦市場","約10:30至12:00抵達最理想，可邊逛邊用餐。","🛍️"],["錦市場 → 宇治","步行至祇園四条站，搭京阪本線至中書島，轉京阪宇治線至宇治站。","🚆"],["平等院・宇治神社・宇治上神社","下午依序安排，並保留中村藤吉或其他宇治抹茶店的時間。","🏯"],["宇治 → 京都住宿","京阪宇治站 → 中書島轉車 → 清水五条站，再步行回住宿。","🚆"]],"transport":["最順鐵路主軸：清水五条／祇園四条 ↔ 京阪本線 ↔ 中書島 ↔ 京阪宇治線。","宇治回程不必繞京都站，直接搭京阪回清水五条較接近住宿。","當晚整理行李，若大阪住宿可代收，建議將大件行李宅配至大阪。"],"tips":["宇治行程至少保留4小時。","若上午延誤，優先保留平等院與宇治神社，京都大學縮短即可。"],"map_query":"平等院 宇治"},{"day":4,"date":"8/11（二）","title":"京都退房・勝尾寺・大阪入住","theme":"跨城移動＋北大阪","summary":"京都退房後先往新大阪與箕面萱野，再前往勝尾寺；參觀後沿御堂筋線南下至大國町入住。","info":[["🏨 京都退房","387-1 Shiogamachō｜8/11退房"],["🏨 大阪住宿","8/11－8/15｜大国1-2-22, 浪速區, 大阪 556-0014"]],"items":[["京都住宿 → 京都站","有行李時建議兩輛計程車；避免先拖行李搭公車或地下鐵。","🚕"],["京都站 → 新大阪站","搭JR京都線新快速，約25分鐘；不需搭新幹線。","🚆"],["新大阪 → 箕面萱野","於新大阪轉大阪Metro御堂筋線，列車直通北大阪急行，可直達箕面萱野。","🚇"],["箕面萱野 → 勝尾寺","轉阪急巴士或兩輛計程車；假日若排隊長，計程車較穩妥。","🔴"],["勝尾寺 → 大國町","返回箕面萱野後，搭北大阪急行／御堂筋線直達大國町，不需換車。","🚇"],["入住大阪住宿","大國町站下車後前往大国1-2-22。帶行李時請依住宿指示選擇最近出口。","🏨"],["象印食堂","休息後搭御堂筋線一站至難波，前往象印食堂大阪本店。","🍚"]],"transport":["建議主線：京都站 → JR京都線新快速 → 新大阪 → 御堂筋線／北大阪急行 → 箕面萱野。","勝尾寺回程：箕面萱野 → 御堂筋線直達大國町。","若行李未宅配，可在新大阪寄放；不要先繞到大國町再北上勝尾寺。"],"tips":["8/11為日本國定假日「山之日」，車站與巴士可能較擁擠。","勝尾寺有坡道，長輩不必走完整個境內。"],"map_query":"大国1-2-22 大阪"},{"day":5,"date":"8/12（三）","title":"神戶防災與藝術","theme":"深度學習日","summary":"由大國町前往神戶HAT地區，參觀人與防災未來中心及兵庫縣立美術館。","info":[["🏨 出發地","大阪住宿｜大國町站附近"]],"items":[["大國町 → 大阪梅田","搭御堂筋線至梅田。","🚇"],["大阪 → 灘／岩屋","可轉JR神戶線至灘站，或阪神線至岩屋站。","🚆"],["人與防災未來中心","建議上午參觀，保留約2小時。","🏢"],["兵庫縣立美術館","兩館距離近，午餐後步行前往。","🎨"],["三宮／元町","若體力足夠，再前往三宮或元町簡單散步、晚餐。","🌆"],["返回大阪","由三宮搭JR／阪神回大阪，再轉御堂筋線至大國町。","🚇"]],"transport":["去程：大國町 → 御堂筋線 → 梅田／大阪站 → JR神戶線至灘，或阪神線至岩屋。","回程：神戶三宮 → 大阪梅田 → 御堂筋線 → 大國町。"],"tips":["HAT神戶兩館可步行銜接。","美術館展覽與休館資訊，出發前再次確認。"],"map_query":"兵庫県立美術館"},{"day":6,"date":"8/13（四）","title":"大阪科學館・水上巴士・梅田","theme":"科學＋水都","summary":"上午大阪市立科學館，下午搭Aqua-Liner，傍晚到梅田吃HARBS。","info":[["🏨 出發地","大阪住宿｜大國町站附近"]],"items":[["大國町 → 肥後橋","搭四橋線可由大國町直達肥後橋，步行前往大阪市立科學館。","🚇"],["大阪市立科學館","先確認星象館場次，並預留展示場參觀時間。","🪐"],["中之島午餐","在科學館或中之島周邊用餐。","🍽️"],["大阪水上巴士 Aqua-Liner","依預約船班前往淀屋橋、八軒家濱或大阪城港。","🚤"],["HARBS 大丸梅田店","水上巴士後前往梅田，6人可能需候位或分桌。","🍰"],["梅田 → 大國町","搭御堂筋線直達大國町。","🚇"]],"transport":["去程最簡單：大國町 → 四橋線直達肥後橋。","回程最簡單：梅田 → 御堂筋線直達大國町。"],"tips":["先鎖定星象館場次，再反推水上巴士時間。","這天交通集中在中之島與梅田。"],"map_query":"大阪市立科学館"},{"day":7,"date":"8/14（五）","title":"天橋立・伊根舟屋包車一日遊","theme":"海之京都","summary":"由大阪住宿出發，整天保留給KKday包車的天橋立與伊根舟屋。","info":[["🚐 包車接送","優先確認是否可於大国1-2-22住宿接送"]],"items":[["大阪住宿接送","向KKday確認接送地點、總時數、超時費、高速費與停車費。","🚐"],["天橋立","安排View Land或傘松公園，依包車動線選擇。","🌊"],["當地午餐","建議請司機協助預約適合6人的餐廳。","🦀"],["伊根舟屋","安排舟屋散步或遊船。","⛵"],["返回大阪","旺季可能塞車，當晚不安排固定時間的高價餐廳。","🚐"]],"transport":["全天私人包車，避免搭JR與巴士多次轉乘。","從大阪往返天橋立＋伊根建議至少10至11小時。"],"tips":["確認車型能舒適乘坐6位乘客。","8月為旺季，包車最好提早預訂。"],"map_query":"天橋立"},{"day":8,"date":"8/15（六）","title":"大阪退房・關西機場・返台","theme":"退房＋機場交通＋回程航班","summary":"星宇15:10由大阪關西機場起飛，建議中午前抵達機場。由大國町前往南海難波，再搭南海特急Rapi:t至關西機場。","info":[["✈️ 回程航班","星宇｜大阪關西機場 → 台北｜15:10 → 17:05"],["🏨 大阪退房","大国1-2-22｜8/15退房"]],"items":[["退房","建議09:30前完成整理，10:15至10:30左右離開住宿。","🧳"],["大國町 → 南海難波","行李較多時，6人分乘兩輛計程車直達南海難波站最省力；也可搭御堂筋線一站至難波。","🚕"],["南海難波 → 關西機場","搭南海特急Rapi:t，全車指定席，最快約34分鐘。建議選擇約11:00前後班次，並預先劃位。","🚆"],["抵達關西機場","以12:00左右抵達為目標，預留約3小時辦理報到、托運、安檢與出境。","🛫"],["星宇返台","15:10起飛，17:05抵達台北。","✈️"]],"transport":["建議路線：大阪住宿 → 計程車／御堂筋線 → 南海難波 → 特急Rapi:t → 關西機場。","Rapi:t為全車指定席，車票通常可於搭乘日前一個月起購買。","最晚不要把抵達機場時間壓到起飛前2小時；6人加長輩建議保留約3小時。"],"tips":["當天不再安排黑門市場等正式景點，避免行李與時間壓力。","出發前一週再以南海官方時刻表確認實際班次。"],"map_query":"関西空港"}];
+let current = Number(location.hash.replace('#day','')) || 1;if(current < 1 || current > 8) current = 1;
+const app=document.getElementById('app'),quick=document.getElementById('quick'),prev=document.getElementById('prev'),next=document.getElementById('next');
+function renderChips(){quick.innerHTML=days.map(d=>`<button class="day-chip ${d.day===current?'active':''}" data-day="${d.day}">D${d.day}・${d.date}</button>`).join('');quick.querySelectorAll('button').forEach(b=>b.onclick=()=>go(Number(b.dataset.day)));quick.querySelector('.active')?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});}
+function render(){const d=days[current-1];document.title=`第${d.day}天 ${d.title}｜京都大阪八日自由行`;app.innerHTML=`<section class="day-head"><div class="day-no">DAY ${d.day} <span>｜</span> ${d.date}</div><h2>${d.title}</h2><span class="theme">${d.theme}</span><p class="summary">${d.summary}</p>${d.info&&d.info.length?`<div class="info-grid">${d.info.map(x=>`<div class="info-card"><strong>${x[0]}</strong><span>${x[1]}</span></div>`).join('')}</div>`:''}</section><section class="timeline">${d.items.map(x=>`<article class="item"><div class="icon">${x[2]}</div><div><h3>${x[0]}</h3><p>${x[1]}</p></div></article>`).join('')}</section>${d.transport&&d.transport.length?`<section class="transport"><h3>2026交通規劃</h3><ul>${d.transport.map(t=>`<li>${t}</li>`).join('')}</ul></section>`:''}<section class="tips"><h3>當日提醒</h3><ul>${d.tips.map(t=>`<li>${t}</li>`).join('')}</ul></section><a class="map-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.map_query)}">📍 在 Google Maps 開啟主要地點</a><p class="note">行程時間仍應依預約、店休、交通與長輩當日體力彈性調整。</p>`;prev.disabled=current===1;next.disabled=current===8;renderChips();window.scrollTo({top:0,behavior:'smooth'});}
+function go(n){if(n<1||n>8)return;current=n;history.replaceState(null,'',`#day${n}`);render();}
+prev.onclick=()=>go(current-1);next.onclick=()=>go(current+1);document.getElementById('home').onclick=()=>go(1);window.addEventListener('hashchange',()=>{const n=Number(location.hash.replace('#day',''));if(n>=1&&n<=8){current=n;render();}});render();
 </script>
 </body>
 </html>
