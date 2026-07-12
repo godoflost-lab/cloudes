@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#19324d">
+<title>2026 京都大阪八日自由行</title>
+<style>
+:root {
+  --navy:#2f5d3a; --blue:#5f9f57; --sky:#eaf7e7; --cream:#fff8df;
+  --ink:#24372a; --muted:#6f7e72; --line:#d8e7d8; --card:#fffef9;
+  --shadow:0 10px 28px rgba(25,50,77,.10);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,#eef8ea 0,#fffdf6 42%,#ffffff 100%);color:var(--ink);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;line-height:1.65}
+button,a{font:inherit}
+.hero{padding:28px 20px 20px;background:linear-gradient(135deg,#2f5d3a 0%,#5f9f57 55%,#9ac66d 100%);color:white}
+.hero-inner{max-width:920px;margin:auto}
+.kicker{font-size:.82rem;letter-spacing:.12em;opacity:.8}
+h1{font-size:clamp(1.65rem,6vw,2.7rem);line-height:1.15;margin:.4rem 0}
+.hero p{margin:.5rem 0 0;opacity:.9}
+.quick{display:flex;gap:8px;overflow-x:auto;padding:12px 14px;background:rgba(255,255,255,.96);
+position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);scrollbar-width:none}
+.quick::-webkit-scrollbar{display:none}
+.day-chip{white-space:nowrap;border:1px solid #cbd9e3;background:#fff;border-radius:999px;padding:8px 13px;color:var(--navy);cursor:pointer}
+.day-chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+main{max-width:920px;margin:auto;padding:18px 14px 110px}
+.day-head{background:linear-gradient(145deg,#fffef9,#f1faee);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
+.day-no{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--blue);font-size:.92rem}
+.day-head h2{margin:.3rem 0;font-size:clamp(1.45rem,5vw,2.1rem);line-height:1.25}
+.theme{display:inline-block;background:linear-gradient(90deg,#e8f7df,#fff3b8);color:#3f7a3d;padding:5px 11px;border-radius:99px;font-size:.86rem;font-weight:700}
+.summary{margin:14px 0 0;color:#475867}
+.timeline{margin-top:18px;display:grid;gap:12px}
+.item{display:grid;grid-template-columns:44px 1fr;gap:12px;background:var(--card);border:1px solid var(--line);
+border-radius:18px;padding:15px;box-shadow:0 5px 18px rgba(47,93,58,.08)}
+.icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,#e8f7df,#fff2b5);display:grid;place-items:center;font-size:1.35rem;border:1px solid #d8eabf}
+.item h3{margin:0 0 4px;font-size:1.03rem}
+.item p{margin:0;color:#566672;font-size:.94rem}
+.tips{margin-top:18px;background:var(--cream);border:1px solid #f0dfb9;border-radius:18px;padding:16px}
+.tips h3{margin:0 0 8px;font-size:1rem}
+.tips ul{margin:0;padding-left:1.2rem}
+.map-btn{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;margin-top:16px;
+padding:13px;border-radius:14px;background:linear-gradient(90deg,#4f934f,#7abf63);color:white;text-decoration:none;font-weight:700;box-shadow:0 6px 16px rgba(79,147,79,.22)}
+.pager{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
+border-top:1px solid var(--line);padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));
+display:grid;grid-template-columns:1fr auto 1fr;gap:9px}
+.pager button{border:0;border-radius:14px;padding:12px 10px;cursor:pointer;font-weight:700}
+.prev,.next{background:var(--navy);color:#fff}
+.prev:disabled,.next:disabled{opacity:.35}
+.home{background:#edf6e9;color:var(--navy);min-width:56px}
+.note{margin-top:16px;color:var(--muted);font-size:.82rem;text-align:center}
+@media(min-width:700px){
+ .hero{padding:42px 24px 28px} main{padding-top:24px} .timeline{grid-template-columns:1fr 1fr}
+ .item{min-height:150px} .quick{justify-content:center}
+}
+@media print{
+ .quick,.pager{display:none} main{max-width:none;padding:0} .day-head,.item{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">FAMILY TRIP 2026</div>
+    <h1>京都・大阪八日自由行</h1>
+    <p>8/8－8/15｜6人家庭旅行｜京都・宇治・大阪・神戶・天橋立</p>
+  </div>
+</header>
+
+<nav class="quick" id="quick"></nav>
+<main id="app"></main>
+
+<div class="pager">
+  <button class="prev" id="prev">← 前一天</button>
+  <button class="home" id="home" aria-label="回到第一天">⌂</button>
+  <button class="next" id="next">後一天 →</button>
+</div>
+
+<script>
+const days = [{"day": 1, "date": "8/8", "title": "抵達京都・入住與河畔散步", "theme": "移動日｜放慢步調", "summary": "抵達日本後，以入住、補給與熟悉住宿周邊為主，不安排需要預約的大型景點。", "items": [["抵達京都", "依航班與入境時間前往京都。若攜帶多件行李，從京都站搭計程車前往住宿最省力。", "🚆"], ["入住京都住宿", "MONday Apart Premium KYOTO Station KAMOGAWA。最近車站為京阪七条站，京都站亦可步行抵達。", "🏨"], ["鴨川・正面橋散步", "若體力尚可，可在傍晚沿鴨川散步，順便熟悉七条站與附近便利商店。", "🌙"], ["晚餐與補給", "建議在京都站、七条或住宿附近簡單用餐，並購買隔日早餐、飲水與防暑用品。", "🍽️"]], "tips": ["第一天不要排遠距離景點。", "確認隔日前往清水寺與花山天文台的交通方式。"], "map_query": "MONday Apart Premium KYOTO Station KAMOGAWA"}, {"day": 2, "date": "8/9", "title": "清水寺・花山天文台・京都咖啡", "theme": "東山文化＋天文體驗", "summary": "上午趁較涼爽時參觀清水寺，中午提早用餐，再搭計程車前往花山天文台。", "items": [["清水寺", "建議早上開門不久抵達，避開高溫與主要人潮。長輩可減少二年坂、三年坂的坡道行程。", "⛩️"], ["清水寺周邊午餐", "建議10:30至11:30之間提早用餐，並在餐廳附近預約計程車。", "🍱"], ["京都大學花山天文台", "預留足夠上山時間，建議12:30前後抵達。參加4D數位宇宙劇場或依天文台回覆調整。", "🔭"], ["LOB COFFEE HOUSE", "天文台行程結束後，下山前往三條京阪一帶休息，適合咖啡與甜點。", "☕"], ["返回住宿", "可由三條京阪搭京阪本線直達七条，步行回住宿。", "🚇"]], "tips": ["6人同行可預約大型計程車，或分乘兩輛。", "花山天文台入口較不直觀，出發前保留日文地址與官方交通說明。"], "map_query": "京都大学 花山天文台"}, {"day": 3, "date": "8/10", "title": "京都大學・錦市場・宇治", "theme": "校園＋市場＋世界遺產", "summary": "上午先看京都大學，接著到錦市場吃午餐，下午前往宇治。這天景點較多，京都大學宜控制停留時間。", "items": [["京都大學吉田校區", "以鐘樓、校園公共區域與紀念品為主，建議停留60至75分鐘。", "🎓"], ["錦市場", "約10:30至12:00抵達最理想，可邊逛邊用餐；避免太晚到達，以免部分店家收攤。", "🛍️"], ["前往宇治", "可由祇園四条或三条搭京阪至中書島，再轉宇治線。", "🚆"], ["平等院", "下午參觀庭園與鳳凰堂周邊，是否進入鳳凰堂內部視現場名額與時間決定。", "🏯"], ["宇治神社・宇治上神社", "沿宇治川步行前往，兩處可連續安排；長輩可依體力選擇縮短路線。", "⛩️"], ["中村藤吉或宇治抹茶", "安排下午茶或甜點，熱門店可能候位，建議保留替代店家。", "🍵"]], "tips": ["宇治行程至少保留4小時。", "若上午行程延誤，優先保留平等院與宇治神社，京都大學縮短即可。"], "map_query": "平等院 宇治"}, {"day": 4, "date": "8/11", "title": "京都移動大阪・勝尾寺・象印食堂", "theme": "跨城移動＋北大阪", "summary": "建議前一天將大件行李宅配至大阪住宿，當天直接由京都前往新大阪，再往箕面萱野與勝尾寺。", "items": [["京都退房", "大件行李若已宅配，全家僅攜帶隨身包移動；若未宅配，可在新大阪寄放。", "🧳"], ["京都 → 新大阪 → 箕面萱野", "搭JR至新大阪，再轉御堂筋線／北大阪急行直達箕面萱野。", "🚆"], ["勝尾寺", "由箕面萱野轉巴士或兩輛計程車。建議上午到訪，停留約1.5至2小時。", "🔴"], ["前往大阪住宿", "從箕面萱野搭御堂筋線直達大國町，住宿位於大國町站附近。", "🏨"], ["象印食堂 大阪本店", "入住休息後前往難波晚餐。大國町至難波僅一站，交通簡單。", "🍚"]], "tips": ["8/11為日本假日，巴士與景點可能較擁擠。", "勝尾寺有坡道，長輩不必走完整個境內。"], "map_query": "勝尾寺"}, {"day": 5, "date": "8/12", "title": "神戶防災與藝術", "theme": "深度學習日", "summary": "兩個主要景點皆位於HAT神戶一帶，適合排在同一天；取消距離較遠的江戶屋本店。", "items": [["大阪 → 神戶岩屋／灘", "由大國町出發，前往梅田轉乘JR或阪神線至神戶東部。", "🚆"], ["阪神・淡路大震災紀念 人與防災未來中心", "建議上午參觀，內容較豐富且情緒較沉重，可保留約2小時。", "🏢"], ["附近午餐", "在HAT神戶或灘區用餐，避免中午再拉回三宮。", "🍽️"], ["兵庫縣立美術館", "下午參觀展覽與安藤忠雄建築空間，建議停留約2小時。", "🎨"], ["三宮／元町", "若體力足夠，再前往三宮或元町簡單散步、晚餐後回大阪。", "🌆"]], "tips": ["這天步行量中等，安排一段坐下休息的午餐。", "美術館展覽內容與休館資訊，出發前再次確認。"], "map_query": "兵庫県立美術館"}, {"day": 6, "date": "8/13", "title": "大阪科學館・水上巴士・梅田甜點", "theme": "科學＋水都", "summary": "上午與中午以室內科學館為主，下午搭船休息，傍晚到梅田吃HARBS。", "items": [["大阪市立科學館", "上午抵達，參觀展示場；星象館有固定場次，建議事先購票或先確認場次。", "🪐"], ["中之島午餐", "在科學館或中之島周邊用餐，避免跨區移動。", "🍽️"], ["大阪水上巴士 Aqua-Liner", "選擇淀屋橋、八軒家濱或大阪城港方便銜接的船班，搭船約55分鐘。", "🚤"], ["HARBS 大丸梅田店", "下午或傍晚前往，6人可能需候位或分桌，可視現場狀況改外帶。", "🍰"], ["梅田散步", "可順遊大阪站時空廣場、Grand Front或LUCUA，依長輩體力決定。", "🏙️"]], "tips": ["先鎖定星象館場次，再反推水上巴士時間。", "這天整體交通可集中在中之島與梅田。"], "map_query": "大阪市立科学館"}, {"day": 7, "date": "8/14", "title": "天橋立・伊根舟屋包車一日遊", "theme": "海之京都", "summary": "整天保留給包車，不再追加正式景點。建議選擇天橋立＋伊根兩地，不要再塞入美山。", "items": [["大阪住宿接送", "向KKday確認是否可於大國町住宿接送、總時數、超時費、高速費與停車費。", "🚐"], ["天橋立", "可安排View Land或傘松公園，依包車動線選擇；長輩可搭纜車，避免長距離步行。", "🌊"], ["當地午餐", "建議預留60分鐘，並請司機協助安排適合6人的餐廳。", "🦀"], ["伊根舟屋", "安排舟屋散步或遊船，行程以悠閒觀景為主。", "⛵"], ["返回大阪", "傍晚返程，旺季可能塞車，不建議當晚再預約固定時間的高價餐廳。", "🚐"]], "tips": ["確認車型能舒適乘坐6位乘客。", "8月為旺季，包車最好提早預訂。", "當晚只安排住宿附近簡單晚餐。"], "map_query": "天橋立"}, {"day": 8, "date": "8/15", "title": "大阪收尾・退房與返程", "theme": "緩衝日｜依航班調整", "summary": "最後一天以退房、採買與前往機場為主。若航班較晚，可安排難波周邊短程活動。", "items": [["退房與寄放行李", "先向住宿確認退房後是否可寄放行李。", "🧳"], ["難波周邊自由活動", "可依時間選擇高島屋、南海難波、黑門市場或木津市場，不安排遠距離景點。", "🛍️"], ["最後採買", "集中購買伴手禮、藥妝與零食，避免前幾天一路攜帶。", "🎁"], ["前往機場", "依機場與航班時間，至少預留足夠搭車、托運與安檢時間。", "✈️"]], "tips": ["最後一天的詳細安排需依航班時間決定。", "大國町前往難波方便，再轉南海電鐵前往關西機場。"], "map_query": "大国町駅"}];
+let current = Number(location.hash.replace('#day','')) || 1;
+if(current < 1 || current > 8) current = 1;
+
+const app = document.getElementById('app');
+const quick = document.getElementById('quick');
+const prev = document.getElementById('prev');
+const next = document.getElementById('next');
+
+function renderChips(){
+  quick.innerHTML = days.map(d => `<button class="day-chip ${d.day===current?'active':''}" data-day="${d.day}">D${d.day}・${d.date}</button>`).join('');
+  quick.querySelectorAll('button').forEach(b => b.onclick = () => go(Number(b.dataset.day)));
+  const active = quick.querySelector('.active');
+  active?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+}
+
+function render(){
+  const d = days[current-1];
+  document.title = `第${d.day}天 ${d.title}｜京都大阪八日自由行`;
+  app.innerHTML = `
+    <section class="day-head">
+      <div class="day-no">DAY ${d.day} <span>｜</span> ${d.date}</div>
+      <h2>${d.title}</h2>
+      <span class="theme">${d.theme}</span>
+      <p class="summary">${d.summary}</p>
+    </section>
+    <section class="timeline">
+      ${d.items.map(x => `
+        <article class="item">
+          <div class="icon">${x[2]}</div>
+          <div><h3>${x[0]}</h3><p>${x[1]}</p></div>
+        </article>`).join('')}
+    </section>
+    <section class="tips">
+      <h3>當日提醒</h3>
+      <ul>${d.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+    </section>
+    <a class="map-btn" target="_blank" rel="noopener"
+       href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.map_query)}">📍 在 Google Maps 開啟主要地點</a>
+    <p class="note">行程時間仍應依預約、店休、交通與長輩當日體力彈性調整。</p>
+  `;
+  prev.disabled = current===1;
+  next.disabled = current===8;
+  renderChips();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function go(n){
+  if(n<1||n>8) return;
+  current=n;
+  history.replaceState(null,'',`#day${n}`);
+  render();
+}
+prev.onclick=()=>go(current-1);
+next.onclick=()=>go(current+1);
+document.getElementById('home').onclick=()=>go(1);
+window.addEventListener('hashchange',()=>{
+  const n=Number(location.hash.replace('#day',''));
+  if(n>=1&&n<=8){current=n;render();}
+});
+render();
+</script>
+</body>
+</html>
